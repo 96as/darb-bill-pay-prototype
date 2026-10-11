@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
+  <ext:UBLExtensions>
+    <ext:UBLExtension>
+      <ext:ExtensionURI>urn:oasis:names:specification:ubl:dsig:enveloped:xades</ext:ExtensionURI>
+      <ext:ExtensionContent>
+        <!-- PLACEHOLDER cryptographic stamp. Every value in this block is FAKE (Darb Bill Pay prototype fixture, fictitious supplier). It will not validate against ZATCA. -->
+        <sig:UBLDocumentSignatures xmlns:sig="urn:oasis:names:specification:ubl:schema:xsd:CommonSignatureComponents-2" xmlns:sac="urn:oasis:names:specification:ubl:schema:xsd:SignatureAggregateComponents-2" xmlns:sbc="urn:oasis:names:specification:ubl:schema:xsd:SignatureBasicComponents-2">
+          <sac:SignatureInformation>
+            <cbc:ID>urn:oasis:names:specification:ubl:signature:1</cbc:ID>
+            <sbc:ReferencedSignatureID>urn:oasis:names:specification:ubl:signature:Invoice</sbc:ReferencedSignatureID>
+            <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="signature">
+              <ds:SignedInfo>
+                <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2006/12/xml-c14n11"/>
+                <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>
+                <ds:Reference Id="invoiceSignedData" URI="">
+                  <ds:Transforms>
+                    <ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116">
+                      <ds:XPath>not(//ancestor-or-self::ext:UBLExtensions)</ds:XPath>
+                    </ds:Transform>
+                    <ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116">
+                      <ds:XPath>not(//ancestor-or-self::cac:Signature)</ds:XPath>
+                    </ds:Transform>
+                    <ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116">
+                      <ds:XPath>not(//ancestor-or-self::cac:AdditionalDocumentReference[cbc:ID='QR'])</ds:XPath>
+                    </ds:Transform>
+                    <ds:Transform Algorithm="http://www.w3.org/2006/12/xml-c14n11"/>
+                  </ds:Transforms>
+                  <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                  <ds:DigestValue>RkFLRS1JTlZPSUNFLURJR0VTVHxwcm90b3R5cGUgZml4dHVyZXxub3QgYSByZWFsIGhhc2g=</ds:DigestValue>
+                </ds:Reference>
+                <ds:Reference Type="http://www.w3.org/2000/09/xmldsig#SignatureProperties" URI="#xadesSignedProperties">
+                  <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                  <ds:DigestValue>RkFLRS1TSUdORUQtUFJPUEVSVElFUy1ESUdFU1R8cHJvdG90eXBlIGZpeHR1cmU=</ds:DigestValue>
+                </ds:Reference>
+              </ds:SignedInfo>
+              <ds:SignatureValue>RkFLRS1FQ0RTQS1TSUdOQVRVUkV8cHJvdG90eXBlIGZpeHR1cmV8bm90IGlzc3VlZCBieSBaQVRDQXx3aWxsIG5vdCB2YWxpZGF0ZQ==</ds:SignatureValue>
+              <ds:KeyInfo>
+                <ds:X509Data>
+                  <ds:X509Certificate>RkFLRS1YNTA5LUNFUlRJRklDQVRFfHByb3RvdHlwZSBmaXh0dXJlfG5vdCBhIFpBVENBIENTSUR8c3ViamVjdD1Db29sIEJyZWV6ZSBIVkFDIENvbnRyYWN0aW5nIENvLiAoZmljdGl0aW91cyk=</ds:X509Certificate>
+                </ds:X509Data>
+              </ds:KeyInfo>
+              <ds:Object>
+                <xades:QualifyingProperties xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" Target="signature">
+                  <xades:SignedProperties Id="xadesSignedProperties">
+                    <xades:SignedSignatureProperties>
+                      <xades:SigningTime>2026-10-13T10:42:17</xades:SigningTime>
+                      <xades:SigningCertificate>
+                        <xades:Cert>
+                          <xades:CertDigest>
+                            <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+                            <ds:DigestValue>RkFLRS1DRVJUSUZJQ0FURS1ESUdFU1R8cHJvdG90eXBlIGZpeHR1cmU=</ds:DigestValue>
+                          </xades:CertDigest>
+                          <xades:IssuerSerial>
+                            <ds:X509IssuerName>CN=DUMMY-ISSUING-CA, DC=prototype, DC=example</ds:X509IssuerName>
+                            <ds:X509SerialNumber>1000000000000000000000000000000000000001</ds:X509SerialNumber>
+                          </xades:IssuerSerial>
+                        </xades:Cert>
+                      </xades:SigningCertificate>
+                    </xades:SignedSignatureProperties>
+                  </xades:SignedProperties>
+                </xades:QualifyingProperties>
+              </ds:Object>
+            </ds:Signature>
+          </sac:SignatureInformation>
+        </sig:UBLDocumentSignatures>
+      </ext:ExtensionContent>
+    </ext:UBLExtension>
+  </ext:UBLExtensions>
+  <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+  <cbc:ID>INV-2026-0451</cbc:ID>
+  <cbc:UUID>6f1c9a52-3b7e-4d21-9c88-0a4e5b2d7f13</cbc:UUID>
+  <cbc:IssueDate>2026-10-13</cbc:IssueDate>
+  <cbc:IssueTime>10:42:17</cbc:IssueTime>
+  <cbc:InvoiceTypeCode name="0100000">388</cbc:InvoiceTypeCode>
+  <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
+  <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
+  <cac:OrderReference>
+    <cbc:ID>PO-SFS-2026-0388</cbc:ID>
+  </cac:OrderReference>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>ICV</cbc:ID>
+    <cbc:UUID>451</cbc:UUID>
+  </cac:AdditionalDocumentReference>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>PIH</cbc:ID>
+    <cac:Attachment>
+      <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">ODU2Njg2ODFjMzk2NDYzZDU0NGFhOGU4MjdiM2FkZDllZWFmZDIyYWQwMGM5ZjU2OGYwZDE1NDIwN2E0ZjhiZg==</cbc:EmbeddedDocumentBinaryObject>
+    </cac:Attachment>
+  </cac:AdditionalDocumentReference>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>QR</cbc:ID>
+    <cac:Attachment>
+      <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">ASBDb29sIEJyZWV6ZSBIVkFDIENvbnRyYWN0aW5nIENvLgIPMzEwMzg3NDUyNjAwMDAzAxMyMDI2LTEwLTEzVDEwOjQyOjE3BAg0NTAwMC4wMAUHNTg2OS41NwZIUmtGTFJTMUpUbFpQU1VORkxVUkpSMFZUVkh4d2NtOTBiM1I1Y0dVZ1ptbDRkSFZ5Wlh4dWIzUWdZU0J5WldGc0lHaGhjMmc9B2hSa0ZMUlMxRlEwUlRRUzFUU1VkT1FWUlZVa1Y4Y0hKdmRHOTBlWEJsSUdacGVIUjFjbVY4Ym05MElHbHpjM1ZsWkNCaWVTQmFRVlJEUVh4M2FXeHNJRzV2ZENCMllXeHBaR0YwWlE9PQgnRkFLRS1FQ0RTQS1QVUJMSUMtS0VZfHByb3RvdHlwZSBmaXh0dXJl</cbc:EmbeddedDocumentBinaryObject>
+    </cac:Attachment>
+  </cac:AdditionalDocumentReference>
+  <cac:Signature>
+    <cbc:ID>urn:oasis:names:specification:ubl:signature:Invoice</cbc:ID>
+    <cbc:SignatureMethod>urn:oasis:names:specification:ubl:dsig:enveloped:xades</cbc:SignatureMethod>
+  </cac:Signature>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyIdentification>
+        <cbc:ID schemeID="CRN">1010932185</cbc:ID>
+      </cac:PartyIdentification>
+      <cac:PartyName>
+        <cbc:Name>Cool Breeze HVAC Contracting Co.</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>Prince Mohammed bin Abdulaziz Road</cbc:StreetName>
+        <cbc:BuildingNumber>7421</cbc:BuildingNumber>
+        <cbc:PlotIdentification>3187</cbc:PlotIdentification>
+        <cbc:CitySubdivisionName>Al Sulimaniyah</cbc:CitySubdivisionName>
+        <cbc:CityName>Riyadh</cbc:CityName>
+        <cbc:PostalZone>12234</cbc:PostalZone>
+        <cbc:CountrySubentity>Riyadh Region</cbc:CountrySubentity>
+        <cac:Country>
+          <cbc:IdentificationCode>SA</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>310387452600003</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Cool Breeze HVAC Contracting Co.</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:ElectronicMail>finance@coolbreeze-hvac.example</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyIdentification>
+        <cbc:ID schemeID="CRN">1010765432</cbc:ID>
+      </cac:PartyIdentification>
+      <cac:PartyName>
+        <cbc:Name>Sahab Facility Services Co.</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>King Abdulaziz Road</cbc:StreetName>
+        <cbc:BuildingNumber>2956</cbc:BuildingNumber>
+        <cbc:PlotIdentification>6610</cbc:PlotIdentification>
+        <cbc:CitySubdivisionName>Al Wurud</cbc:CitySubdivisionName>
+        <cbc:CityName>Riyadh</cbc:CityName>
+        <cbc:PostalZone>12251</cbc:PostalZone>
+        <cbc:CountrySubentity>Riyadh Region</cbc:CountrySubentity>
+        <cac:Country>
+          <cbc:IdentificationCode>SA</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>310458812300003</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Sahab Facility Services Co.</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:Delivery>
+    <cbc:ActualDeliveryDate>2026-10-13</cbc:ActualDeliveryDate>
+  </cac:Delivery>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>42</cbc:PaymentMeansCode>
+    <cbc:PaymentDueDate>2026-11-12</cbc:PaymentDueDate>
+    <cbc:InstructionNote>Bank transfer, quote the invoice number</cbc:InstructionNote>
+    <cbc:PaymentID>INV-2026-0451</cbc:PaymentID>
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>SA6710000000020315550044</cbc:ID>
+      <cbc:Name>Cool Breeze HVAC Contracting Co.</cbc:Name>
+      <cac:FinancialInstitutionBranch>
+        <cbc:Name>Saudi National Bank</cbc:Name>
+      </cac:FinancialInstitutionBranch>
+    </cac:PayeeFinancialAccount>
+  </cac:PaymentMeans>
+  <cac:PaymentTerms>
+    <cbc:Note>Net 30 days from invoice date</cbc:Note>
+  </cac:PaymentTerms>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="SAR">5869.57</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="SAR">39130.43</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="SAR">5869.57</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID schemeID="UN/ECE 5305" schemeAgencyID="6">S</cbc:ID>
+        <cbc:Percent>15.00</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID schemeID="UN/ECE 5153" schemeAgencyID="6">VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="SAR">5869.57</cbc:TaxAmount>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="SAR">39130.43</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="SAR">39130.43</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="SAR">45000.00</cbc:TaxInclusiveAmount>
+    <cbc:AllowanceTotalAmount currencyID="SAR">0.00</cbc:AllowanceTotalAmount>
+    <cbc:PrepaidAmount currencyID="SAR">0.00</cbc:PrepaidAmount>
+    <cbc:PayableAmount currencyID="SAR">45000.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="EA">3.000000</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="SAR">16850.04</cbc:LineExtensionAmount>
+    <cac:TaxTotal>
+      <cbc:TaxAmount currencyID="SAR">2527.51</cbc:TaxAmount>
+      <cbc:RoundingAmount currencyID="SAR">19377.55</cbc:RoundingAmount>
+    </cac:TaxTotal>
+    <cac:Item>
+      <cbc:Name>Quarterly preventive maintenance, water-cooled chillers – Q4 2026</cbc:Name>
+      <cac:SellersItemIdentification>
+        <cbc:ID>SRV-CHL-PM-Q</cbc:ID>
+      </cac:SellersItemIdentification>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID schemeID="UN/ECE 5305" schemeAgencyID="6">S</cbc:ID>
+        <cbc:Percent>15.00</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID schemeID="UN/ECE 5153" schemeAgencyID="6">VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="SAR">5616.68</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>2</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="SET">1.000000</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="SAR">22280.39</cbc:LineExtensionAmount>
+    <cac:TaxTotal>
+      <cbc:TaxAmount currencyID="SAR">3342.06</cbc:TaxAmount>
+      <cbc:RoundingAmount currencyID="SAR">25622.45</cbc:RoundingAmount>
+    </cac:TaxTotal>
+    <cac:Item>
+      <cbc:Name>Replacement compressor parts – scroll compressor kit and oil filter, supply and installation</cbc:Name>
+      <cac:SellersItemIdentification>
+        <cbc:ID>PRT-CMP-SCR-10T</cbc:ID>
+      </cac:SellersItemIdentification>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID schemeID="UN/ECE 5305" schemeAgencyID="6">S</cbc:ID>
+        <cbc:Percent>15.00</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID schemeID="UN/ECE 5153" schemeAgencyID="6">VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="SAR">22280.39</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>
+</Invoice>
