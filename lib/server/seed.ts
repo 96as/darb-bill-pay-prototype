@@ -1,6 +1,10 @@
 // The demo seed, exactly as docs/BUILD-NOTES.md "Seed". Deterministic ids so tests and DEMO.md can name them.
 // Supplier B (Cool Breeze) is NOT seeded: it is added in demo step 3 from the e-invoice.
-import type { AuditEvent, Bill, BillFieldKey, FieldSource, StoreData } from "@/lib/domain/types";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import type { AuditEvent, Bill, BillFieldKey, FieldSource, StoreData, StoredFile } from "@/lib/domain/types";
+import { PROJECT_ROOT } from "./files";
 
 export const STORE_VERSION = 1;
 
@@ -10,6 +14,7 @@ export const SEED_IDS = {
   accounts: { main: "main", maintenance: "w_maintenance" },
   supplierA: "s_green_oasis",
   bills: { savedDraft: "b_gol_0917", paidHistory: "b_gol_0822", sadad: "b_sadad_power" },
+  files: { savedDraft: "f_seed_gol_0917" },
   payments: { paidHistory: "p_gol_0822" },
   email: "e_october",
 } as const;
@@ -19,6 +24,16 @@ export const SEED_NOW = "2026-10-15T13:10:00.000Z";
 
 export const FIXTURE_PDF = "fixtures/invoices/INV-2026-0451-cool-breeze.pdf";
 export const FIXTURE_PHOTO = "fixtures/invoices/GOL-2026-1003-photo.jpg";
+/** The saved bill's invoice (a plain PDF, no XML), so the approver sees every invoice beside its amount. */
+export const FIXTURE_SAVED_PDF = "fixtures/invoices/GOL-2026-0917-green-oasis.pdf";
+
+/** A fixture as a StoredFile, hashed at seed time so a regenerated fixture never goes stale; undefined if missing. */
+function fixtureFile(id: string, relPath: string, mime: StoredFile["mime"]): StoredFile | undefined {
+  const abs = path.join(PROJECT_ROOT, relPath);
+  if (!existsSync(abs)) return undefined;
+  const bytes = readFileSync(abs);
+  return { id, name: path.basename(relPath), mime, size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), path: relPath };
+}
 
 const IBAN_A = "SA5880000000318204466710";
 
@@ -66,6 +81,7 @@ function seedAudit(): AuditEvent[] {
 }
 
 export function createSeed(): StoreData {
+  const savedPdf = fixtureFile("f_seed_gol_0917", FIXTURE_SAVED_PDF, "application/pdf");
   return {
     version: STORE_VERSION,
     clock: { now: SEED_NOW },
@@ -109,6 +125,8 @@ export function createSeed(): StoreData {
       {
         ...supplierABill,
         id: SEED_IDS.bills.savedDraft,
+        // Saved earlier from an uploaded PDF without XML; its fields were typed by hand.
+        ...(savedPdf ? { source: "upload" as const, file: savedPdf } : {}),
         invoiceNumber: "GOL-2026-0917",
         issueDate: "2026-09-20",
         dueDate: "2026-10-14",
@@ -241,7 +259,7 @@ export function createSeed(): StoreData {
         billIds: [],
       },
     ],
-    files: [],
+    files: savedPdf ? [savedPdf] : [],
     railLedger: [{ requestKey: `pay_${SEED_IDS.bills.paidHistory}`, transferRef: "DRB-20260922-000101", at: "2026-09-22T06:00:02.000Z", status: "settled", amount: 690_000 }],
   };
 }

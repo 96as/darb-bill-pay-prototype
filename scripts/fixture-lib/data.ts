@@ -128,7 +128,9 @@ export const GREEN_OASIS = {
   email: "accounts@greenoasis.example",
   iban: "SA5880000000318204466710",
   bankAr: "مصرف الراجحي",
+  bankEn: "Al Rajhi Bank",
   addressAr: "الرياض – حي الملقا – طريق أنس بن مالك – مبنى 4128",
+  addressEn: "Building 4128, Anas Bin Malik Road, Al Malqa, Riyadh",
 };
 
 export const GREEN_OASIS_INVOICE = {
@@ -155,4 +157,43 @@ export const GREEN_OASIS_INVOICE = {
   ],
   expected: { subtotal: 700000, vat: 105000, total: 805000 },
   totalInWordsAr: "فقط ثمانية آلاف وخمسون ريالاً سعودياً لا غير",
+};
+
+/**
+ * The seeded "saved earlier" bill (BUILD-NOTES: GOL-2026-0917, 10,869.57 + 1,630.43 = 12,500.00).
+ * A clean digital PDF, no embedded XML. Line amounts are chosen so the per-line VAT
+ * (rounded half-up) adds up to the seed VAT: 985.44 + 644.99 = 1,630.43.
+ */
+export const GREEN_OASIS_INVOICE_0917 = {
+  id: "GOL-2026-0917",
+  issueDate: "2026-09-20",
+  issueDateShown: "2026/09/20",
+  dueDate: "2026-10-14",
+  dueDateShown: "2026/10/14",
+  /** Riyadh local time; also used (as UTC+3) for the PDF metadata dates. */
+  issueTime: "11:30:00",
+  issueInstantUtc: "2026-09-20T08:30:00Z",
+  supplyAr: "سبتمبر 2026",
+  supplyEn: "September 2026",
+  lines: [
+    {
+      nameAr: "زراعة موسمية – سبتمبر 2026",
+      nameEn: "Seasonal planting — September 2026",
+      quantity: 1,
+      unitAr: "مقطوعية",
+      unitEn: "lump sum",
+      unitPrice: 656961,
+    },
+    {
+      nameAr: "تقليم أشجار النخيل (12 نخلة)",
+      nameEn: "Palm tree trimming (12 trees)",
+      quantity: 12,
+      unitAr: "نخلة",
+      unitEn: "tree",
+      unitPrice: 35833,
+    },
+  ],
+  expected: { subtotal: 1086957, vat: 163043, total: 1250000 },
+  totalInWordsAr: "فقط اثنا عشر ألفاً وخمسمائة ريال سعودي لا غير",
+  totalInWordsEn: "Twelve thousand five hundred Saudi riyals only",
 };

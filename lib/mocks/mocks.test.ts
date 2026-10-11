@@ -56,6 +56,24 @@ describe("mock OCR", () => {
   });
 });
 
+describe("seed", () => {
+  it("attaches the saved bill's invoice PDF, hashed from the fixture", async () => {
+    const store = createSeed();
+    const bill = store.bills.find((b) => b.id === "b_gol_0917")!;
+    const bytes = await fixture("fixtures/invoices/GOL-2026-0917-green-oasis.pdf");
+    expect(bill.file).toEqual({
+      id: "f_seed_gol_0917",
+      name: "GOL-2026-0917-green-oasis.pdf",
+      mime: "application/pdf",
+      size: bytes.length,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      path: "fixtures/invoices/GOL-2026-0917-green-oasis.pdf",
+    });
+    expect(store.files).toEqual([bill.file]);
+    expect(bill).toMatchObject({ source: "upload", extraction: "manual" });
+  });
+});
+
 describe("mock name check", () => {
   const check = createFixedNameCheck();
   it("follows the BUILD-NOTES table", () => {

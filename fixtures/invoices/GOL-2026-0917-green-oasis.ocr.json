@@ -1,0 +1,49 @@
+{
+  "note": "Fixed mock OCR response for GOL-2026-0917-green-oasis.pdf (Darb Bill Pay prototype). Fictitious data. A plain PDF with no embedded XML, so its fields come from (mock) OCR.",
+  "engine": "mock-ocr",
+  "file": "GOL-2026-0917-green-oasis.pdf",
+  "language": "bilingual",
+  "currency": "SAR",
+  "fields": {
+    "supplierName": {
+      "value": "Green Oasis Landscaping Est.",
+      "confidence": 0.97
+    },
+    "supplierNameAr": {
+      "value": "مؤسسة الواحة الخضراء لتنسيق الحدائق",
+      "confidence": 0.96
+    },
+    "supplierVat": {
+      "value": "311902476500003",
+      "confidence": 0.98
+    },
+    "supplierCr": {
+      "value": "1010847261",
+      "confidence": 0.97
+    },
+    "invoiceNumber": {
+      "value": "GOL-2026-0917",
+      "confidence": 0.97
+    },
+    "issueDate": {
+      "value": "2026-09-20",
+      "confidence": 0.96
+    },
+    "dueDate": {
+      "value": "2026-10-14",
+      "confidence": 0.95
+    },
+    "subtotal": {
+      "value": "10869.57",
+      "confidence": 0.97
+    },
+    "vat": {
+      "value": "1630.43",
+      "confidence": 0.96
+    },
+    "total": {
+      "value": "12500.00",
+      "confidence": 0.98
+    }
+  }
+}

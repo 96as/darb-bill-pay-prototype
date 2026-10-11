@@ -2,7 +2,11 @@
  * Regenerates every invoice fixture in fixtures/invoices/ end to end.
  *
  *   npx tsx scripts/make-fixtures.ts                # or: npm run fixtures
- *   npx tsx scripts/make-fixtures.ts --preview-dir /tmp/previews   # also PNG previews of the PDF (macOS sips)
+ *   npx tsx scripts/make-fixtures.ts --preview-dir /tmp/previews   # also PNG previews of the PDFs (macOS sips)
+ *
+ * Outputs: the Cool Breeze e-invoice (XML + PDF with the XML attached), the Green Oasis
+ * phone photo + mock OCR, the plain Green Oasis PDF for the seeded bill GOL-2026-0917,
+ * and the XML test variants.
  *
  * Needs Google Chrome (headless; set CHROME_PATH to override) and, for the photo,
  * python3 with Pillow (falls back to macOS `sips` for the PNG -> JPEG step).
@@ -28,7 +32,15 @@ import {
   PDFString,
   decodePDFRawStream,
 } from "pdf-lib";
-import { BUYER, COOL_BREEZE, COOL_BREEZE_INVOICE, GREEN_OASIS, GREEN_OASIS_INVOICE, SAR } from "./fixture-lib/data";
+import {
+  BUYER,
+  COOL_BREEZE,
+  COOL_BREEZE_INVOICE,
+  GREEN_OASIS,
+  GREEN_OASIS_INVOICE,
+  GREEN_OASIS_INVOICE_0917,
+  SAR,
+} from "./fixture-lib/data";
 import {
   buildBillionLaughsXml,
   buildCoolBreezeXml,
@@ -38,7 +50,12 @@ import {
   zatcaQrBase64,
 } from "./fixture-lib/invoice-xml";
 import { qrSvg } from "./fixture-lib/qr";
-import { coolBreezeInvoiceHtml, greenOasisPhotoHtml } from "./fixture-lib/templates";
+import {
+  coolBreezeInvoiceHtml,
+  greenOasis0917Totals,
+  greenOasisInvoicePdfHtml,
+  greenOasisPhotoHtml,
+} from "./fixture-lib/templates";
 
 const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(ROOT, "fixtures", "invoices");
@@ -54,6 +71,10 @@ const FILES = {
   ocrIndex: path.join(OUT, "ocr-index.json"),
   invoiceHtml: path.join(TEMPLATES, "cool-breeze-invoice.html"),
   photoHtml: path.join(TEMPLATES, "green-oasis-photo.html"),
+  gol0917Pdf: path.join(OUT, "GOL-2026-0917-green-oasis.pdf"),
+  gol0917Html: path.join(TEMPLATES, "green-oasis-0917-invoice.html"),
+  /** Not written by this script; indexed if present. */
+  gol0917Ocr: path.join(OUT, "GOL-2026-0917-green-oasis.ocr.json"),
 };
 
 const sha256 = (buf: Buffer | Uint8Array) => createHash("sha256").update(buf).digest("hex");
@@ -274,6 +295,48 @@ async function buildPhoto(tmp: string): Promise<void> {
   }
 }
 
+/** Plain digital PDF for the seeded "saved earlier" bill. No attachment (supplier not on ZATCA integration yet). */
+async function buildGreenOasis0917Pdf(tmp: string): Promise<string> {
+  const inv = GREEN_OASIS_INVOICE_0917;
+  const totals = greenOasis0917Totals();
+  const qrPayload = zatcaQrBase64([
+    GREEN_OASIS.nameAr,
+    GREEN_OASIS.vat,
+    `${inv.issueDate}T${inv.issueTime}`,
+    SAR(totals.total),
+    SAR(totals.vat),
+  ]);
+  const qr = qrSvg(Buffer.from(qrPayload, "ascii"), { title: "QR (demo data)" });
+  mkdirSync(TEMPLATES, { recursive: true });
+  writeFileSync(FILES.gol0917Html, greenOasisInvoicePdfHtml(totals, qr));
+
+  const chromePdf = path.join(tmp, "gol-0917-chrome.pdf");
+  await runChrome(tmp, ["--no-pdf-header-footer", `--print-to-pdf=${chromePdf}`], FILES.gol0917Html, chromePdf);
+
+  const when = new Date(inv.issueInstantUtc);
+  const pdf = await PDFDocument.load(readFileSync(chromePdf), { updateMetadata: false });
+  if (pdf.getPageCount() !== 1) throw new Error(`GOL-2026-0917 PDF has ${pdf.getPageCount()} pages, expected 1`);
+  pdf.setTitle(`فاتورة ضريبية ${inv.id} – ${GREEN_OASIS.nameEn} (fictitious)`);
+  pdf.setAuthor(`${GREEN_OASIS.nameEn} (fictitious demo supplier)`);
+  pdf.setSubject("Demo tax invoice (plain PDF, no e-invoice XML). Fictitious data for the Darb Bill Pay prototype.");
+  pdf.setKeywords(["tax invoice", inv.id, "demo", "fictitious"]);
+  pdf.setCreator("Darb Bill Pay prototype fixtures (scripts/make-fixtures.ts, headless Chrome)");
+  pdf.setProducer("pdf-lib");
+  pdf.setLanguage("ar");
+  pdf.setCreationDate(when);
+  pdf.setModificationDate(when);
+  const bytes = await pdf.save({ useObjectStreams: false });
+  writeFileSync(FILES.gol0917Pdf, bytes);
+
+  // Must stay a plain PDF: no attachments, no /AF.
+  const check = await PDFDocument.load(bytes, { updateMetadata: false });
+  const names = check.catalog.lookupMaybe(PDFName.of("Names"), PDFDict);
+  if (names?.has(PDFName.of("EmbeddedFiles")) || check.catalog.has(PDFName.of("AF"))) {
+    throw new Error("GOL-2026-0917 PDF must not carry embedded files");
+  }
+  return `1 page, no embedded files; ${SAR(totals.subtotal)} + ${SAR(totals.vat)} = ${SAR(totals.total)} SAR`;
+}
+
 function writeOcr(): string {
   const inv = GREEN_OASIS_INVOICE;
   const f = (value: string, confidence: number) => ({ value, confidence });
@@ -298,15 +361,25 @@ function writeOcr(): string {
   };
   writeFileSync(FILES.ocr, `${JSON.stringify(ocr, null, 2)}\n`);
   const jpgHash = sha256(readFileSync(FILES.jpg));
-  writeFileSync(FILES.ocrIndex, `${JSON.stringify({ [jpgHash]: path.basename(FILES.ocr) }, null, 2)}\n`);
+  const index: Record<string, string> = { [jpgHash]: path.basename(FILES.ocr) };
+  // This script does not write an OCR answer for GOL-2026-0917. If one is kept next to the
+  // PDF (it is maintained separately), index it under the freshly built PDF's hash so a
+  // regeneration never leaves a stale entry.
+  if (existsSync(FILES.gol0917Ocr)) {
+    index[sha256(readFileSync(FILES.gol0917Pdf))] = path.basename(FILES.gol0917Ocr);
+    log(`  indexed ${path.basename(FILES.gol0917Ocr)} under the GOL-2026-0917 PDF hash`);
+  }
+  writeFileSync(FILES.ocrIndex, `${JSON.stringify(index, null, 2)}\n`);
   return jpgHash;
 }
 
 function writePreviews(dir: string) {
   mkdirSync(dir, { recursive: true });
-  const out = path.join(dir, "INV-2026-0451-cool-breeze.pdf.png");
-  const r = spawnSync("sips", ["-s", "format", "png", "-Z", "1800", FILES.pdf, "--out", out], { stdio: "ignore" });
-  log(r.status === 0 ? `  preview: ${out}` : "  preview: sips not available, skipped");
+  for (const pdf of [FILES.pdf, FILES.gol0917Pdf]) {
+    const out = path.join(dir, `${path.basename(pdf)}.png`);
+    const r = spawnSync("sips", ["-s", "format", "png", "-Z", "1800", pdf, "--out", out], { stdio: "ignore" });
+    log(r.status === 0 ? `  preview: ${out}` : "  preview: sips not available, skipped");
+  }
 }
 
 async function main() {
@@ -314,15 +387,17 @@ async function main() {
   const previewDir = previewIdx > -1 ? path.resolve(process.argv[previewIdx + 1]) : undefined;
   const tmp = mkdtempSync(path.join(os.tmpdir(), "darb-fixtures-"));
   try {
-    log("1/5 XML (bilingual + variants + hostile files)");
+    log("1/6 XML (bilingual + variants + hostile files)");
     const xmlBytes = writeXmlFixtures();
-    log("2/5 PDF (Chrome print-to-pdf, then attach XML with pdf-lib)");
+    log("2/6 PDF INV-2026-0451 (Chrome print-to-pdf, then attach XML with pdf-lib)");
     await buildPdf(xmlBytes, tmp);
-    log("3/5 Verify embedded XML");
+    log("3/6 Verify embedded XML");
     log(`  ${await verifyEmbeddedXml(xmlBytes)}`);
-    log("4/5 Photo (Chrome screenshot -> JPEG)");
+    log("4/6 Photo GOL-2026-1003 (Chrome screenshot -> JPEG)");
     await buildPhoto(tmp);
-    log("5/5 OCR mock + index");
+    log("5/6 PDF GOL-2026-0917 (plain PDF, no attachment)");
+    log(`  ${await buildGreenOasis0917Pdf(tmp)}`);
+    log("6/6 OCR mock + index");
     const jpgHash = writeOcr();
     if (previewDir) writePreviews(previewDir);
 
@@ -333,11 +408,13 @@ async function main() {
       FILES.jpg,
       FILES.ocr,
       FILES.ocrIndex,
+      FILES.gol0917Pdf,
       ...["english.xml", "arabic.xml", "bilingual.xml", "malicious-xxe.xml", "billion-laughs.xml"].map((f) =>
         path.join(VARIANTS, f),
       ),
       FILES.invoiceHtml,
       FILES.photoHtml,
+      FILES.gol0917Html,
     ];
     for (const f of all) log(`  ${String(statSync(f).size).padStart(8)}  ${path.relative(ROOT, f)}`);
     log(`\nJPEG sha256: ${jpgHash}`);

@@ -312,10 +312,15 @@ describe("Step 5 — the approver approves the run (BP-08, BP-17)", () => {
     const { status, body } = await call<RunView>(run.GET, "GET", "/api/payment-runs/run_1", { params: { id: "run_1" } });
     expect(status).toBe(200);
     const items = Object.fromEntries(body.items.map((i) => [i.bill.id, i]));
-    for (const id of ["b_1", "b_2"]) {
-      const file = items[id].bill.file!;
-      expect((await call<string>(files.GET, "GET", `/api/files/${file.id}`, { params: { id: file.id } })).status).toBe(200);
+    expect(body.items.map((i) => i.bill.id).sort()).toEqual(["b_1", "b_2", "b_gol_0917"]);
+    for (const item of body.items) {
+      const file = item.bill.file;
+      expect(file, `${item.bill.id} has its invoice file`).toBeDefined();
+      const served = await call<string>(files.GET, "GET", `/api/files/${file!.id}`, { params: { id: file!.id } });
+      expect(served.status).toBe(200);
+      expect(served.res.headers.get("content-type")).toBe(file!.mime);
     }
+    expect(items.b_gol_0917.bill.file).toMatchObject({ name: "GOL-2026-0917-green-oasis.pdf", mime: "application/pdf" });
     expect(items.b_2.payment).toMatchObject({ status: "settled", rail: "instant", fundingAccountId: "w_maintenance" });
     expect(items.b_gol_0917.payment).toMatchObject({ status: "settled", rail: "instant", fundingAccountId: "main" });
     expect(items.b_1.payment).toMatchObject({ status: "scheduled", rail: "sarie", expectedArrival: "2026-10-18", iban: IBAN_B_NEW });
@@ -430,6 +435,21 @@ describe("Step 7 — the bills view: owed per supplier, SADAD in the same list (
     expect(both.body.rows.map((r) => r.bill.id)).toEqual(["b_sadad_power"]);
     const bad = await call<ApiError>(bills.GET, "GET", "/api/bills?status=late");
     expect(bad.status).toBe(400);
+  });
+});
+
+// ---------- Duplicate by supplier + invoice number ----------
+
+describe("Also BP-04 — the saved bill's plain PDF uploaded again", () => {
+  it("BP-04: is flagged as a duplicate of b_gol_0917 by supplier + invoice number (a plain PDF has no UUID)", async () => {
+    const form = new FormData();
+    const bytes = readFileSync(path.join(process.cwd(), "fixtures/invoices/GOL-2026-0917-green-oasis.pdf"));
+    form.append("file", new File([bytes], "GOL-2026-0917-green-oasis.pdf", { type: "application/pdf" }));
+    const { status, body } = await call<IngestResult>(bills.POST, "POST", "/api/bills", { form });
+    expect(status).toBe(201);
+    expect(body.duplicate).toEqual({ billId: "b_gol_0917", reason: "supplier_invoice_number" });
+    expect(body.bill).toMatchObject({ extraction: "ocr", supplierId: "s_green_oasis", invoiceNumber: "GOL-2026-0917", duplicateOf: "b_gol_0917" });
+    expect(body.bill.invoiceUuid).toBeUndefined();
   });
 });
 

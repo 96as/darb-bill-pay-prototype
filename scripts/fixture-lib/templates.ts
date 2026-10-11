@@ -8,6 +8,7 @@ import {
   COOL_BREEZE_INVOICE,
   GREEN_OASIS,
   GREEN_OASIS_INVOICE,
+  GREEN_OASIS_INVOICE_0917,
   SAR_DISPLAY,
   vat15,
 } from "./data";
@@ -319,7 +320,8 @@ const WOOD_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1
 
 const svgDataUri = (svg: string) => `url("data:image/svg+xml;utf8,${encodeURIComponent(svg.replace(/\n/g, ""))}")`;
 
-function stampSvg(): string {
+function stampSvg(opts: { ink?: boolean } = {}): string {
+  const ink = opts.ink ?? true;
   // Name on the top arc, city on the bottom arc, CR number in the middle.
   return `<svg class="stamp" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -333,7 +335,7 @@ function stampSvg(): string {
       <feDisplacementMap in="c" in2="w" scale="2.2"/>
     </filter>
   </defs>
-  <g filter="url(#ink)" fill="none" stroke="#2747a3">
+  <g${ink ? ' filter="url(#ink)"' : ""} fill="none" stroke="#2747a3">
     <circle cx="100" cy="100" r="95" stroke-width="3.6"/>
     <circle cx="100" cy="100" r="89" stroke-width="1.3"/>
     <circle cx="100" cy="100" r="55" stroke-width="1.5"/>
@@ -512,6 +514,246 @@ export function greenOasisPhotoHtml(qr: string): string {
   </div>
 </div>
 <div class="light"></div>
+</body>
+</html>
+`;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Green Oasis GOL-2026-0917: clean digital A4 PDF (Arabic first, English labels)
+// ---------------------------------------------------------------------------
+
+export interface GreenOasis0917Totals {
+  lines: { amount: number; vat: number; total: number }[];
+  subtotal: number;
+  vat: number;
+  total: number;
+}
+
+/** Per-line amounts and VAT (half-up), checked against the seed numbers. */
+export function greenOasis0917Totals(): GreenOasis0917Totals {
+  const inv = GREEN_OASIS_INVOICE_0917;
+  const lines = inv.lines.map((l) => {
+    const amount = l.quantity * l.unitPrice;
+    const vat = vat15(amount);
+    return { amount, vat, total: amount + vat };
+  });
+  const subtotal = lines.reduce((a, l) => a + l.amount, 0);
+  const vat = lines.reduce((a, l) => a + l.vat, 0);
+  const total = subtotal + vat;
+  const e = inv.expected;
+  if (subtotal !== e.subtotal || vat !== e.vat || total !== e.total) {
+    throw new Error(`GOL-2026-0917 totals ${subtotal}/${vat}/${total} do not match seed ${e.subtotal}/${e.vat}/${e.total}`);
+  }
+  return { lines, subtotal, vat, total };
+}
+
+export function greenOasisInvoicePdfHtml(t: GreenOasis0917Totals, qr: string): string {
+  const S = GREEN_OASIS;
+  const B = BUYER;
+  const bar = B.address.ar;
+  const inv = GREEN_OASIS_INVOICE_0917;
+  const ltr = (v: string) => `<span class="num" dir="ltr">${v}</span>`;
+  const en = (v: string) => `<span class="en" lang="en" dir="ltr">${v}</span>`;
+  const rows = inv.lines
+    .map((l, i) => {
+      const lt = t.lines[i];
+      return `<tr>
+        <td class="c">${i + 1}</td>
+        <td class="d">${l.nameAr}${en(l.nameEn)}</td>
+        <td class="c">${l.unitAr}${en(l.unitEn)}</td>
+        <td class="c">${ltr(String(l.quantity))}</td>
+        <td class="n">${SAR_DISPLAY(l.unitPrice)}</td>
+        <td class="n">${SAR_DISPLAY(lt.amount)}</td>
+        <td class="n">${SAR_DISPLAY(lt.vat)}</td>
+        <td class="n b">${SAR_DISPLAY(lt.total)}</td>
+      </tr>`;
+    })
+    .join("\n");
+  const meta = (ar: string, enLabel: string, value: string) =>
+    `<div class="m"><span class="lbl">${ar}${en(enLabel)}</span><b>${value}</b></div>`;
+
+  return `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>فاتورة ضريبية ${inv.id} – ${S.nameEn} (fictitious)</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body {
+    font-family: Arial, "Geeza Pro", sans-serif; color: #1e1e1e; font-size: 9.8pt; line-height: 1.45;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .num { font-family: Arial, sans-serif; unicode-bidi: isolate; }
+  .en { display: block; font-family: Arial, sans-serif; direction: ltr; unicode-bidi: isolate; color: #5f7263; font-size: 7.3pt; font-weight: 400; line-height: 1.3; }
+  .page { width: 210mm; height: 296mm; padding: 0 15mm 9mm; display: flex; flex-direction: column; background: #fff; }
+  .page > * { flex-shrink: 0; }
+  .topbar { height: 3.4mm; background: #1f6a35; margin: 0 -15mm; }
+  .topbar2 { height: 0.8mm; background: #b9d8bd; margin: 0 -15mm 8mm; }
+
+  .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .co h1 { margin: 0; font-family: "Geeza Pro", Arial, sans-serif; font-size: 19pt; color: #1f6a35; line-height: 1.3; }
+  .co .name-en { font-family: Arial, sans-serif; direction: ltr; text-align: right; font-size: 9pt; color: #2e5c3a; letter-spacing: 0.4pt; font-weight: 700; margin-bottom: 1.5mm; }
+  .co p { margin: 0.3mm 0 0; font-size: 8.6pt; color: #333; }
+  .co p .en { display: inline; font-size: 7.4pt; margin: 0 1mm; }
+  .doc { text-align: left; padding-top: 1mm; }
+  .doc .t { font-family: "Geeza Pro", Arial, sans-serif; font-size: 22pt; font-weight: 700; line-height: 1.2; }
+  .doc .te { font-family: Arial, sans-serif; font-size: 9pt; letter-spacing: 2.4pt; color: #555; direction: ltr; }
+  .rule { border-top: 3px double #1f6a35; margin: 5mm 0 5mm; }
+
+  .meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2.2mm 6mm; }
+  .m { border-bottom: 0.3mm dotted #9aa; padding-bottom: 1.4mm; display: flex; justify-content: space-between; align-items: flex-end; gap: 2mm; }
+  .m .lbl { color: #444; font-size: 8.6pt; }
+  .m b { font-size: 9.8pt; white-space: nowrap; }
+
+  .box { border: 0.35mm solid #b8d0bb; border-radius: 2mm; margin-top: 5mm; overflow: hidden; }
+  .box .h { background: #e4efe2; padding: 1.4mm 3.5mm; font-weight: 700; color: #1f6a35; display: flex; justify-content: space-between; align-items: center; }
+  .box .h .en { display: inline; color: #1f6a35; font-size: 8pt; font-weight: 700; }
+  .box .body { padding: 2.2mm 3.5mm 2.6mm; display: grid; grid-template-columns: 1.25fr 1fr; gap: 1.4mm 8mm; font-size: 9.4pt; }
+  .box .body .k { color: #555; }
+  .box .body .k .en { display: inline; margin-right: 1mm; }
+
+  table.items { width: 100%; border-collapse: collapse; margin-top: 5mm; table-layout: fixed; }
+  table.items th { background: #e4efe2; border: 0.3mm solid #8fb497; padding: 1.4mm 1.2mm; font-weight: 700; font-size: 8.6pt; text-align: center; vertical-align: middle; color: #173f22; }
+  table.items th .en { font-weight: 600; font-size: 7pt; color: #4b6a52; }
+  table.items td { border: 0.3mm solid #8fb497; padding: 2.6mm 1.6mm; vertical-align: top; }
+  table.items td.c { text-align: center; }
+  table.items td.d { line-height: 1.4; }
+  table.items td.d .en { margin-top: 0.6mm; font-size: 7.8pt; text-align: right; }
+  table.items td.n { text-align: left; direction: ltr; font-family: Arial, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.items td.b { font-weight: 700; }
+
+  .sum { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; margin-top: 5mm; }
+  .left { flex: 1; }
+  table.totals { width: 92mm; border-collapse: collapse; font-size: 9.8pt; }
+  table.totals td { border: 0.3mm solid #8fb497; padding: 1.5mm 2.6mm; vertical-align: middle; }
+  table.totals td.n { text-align: left; direction: ltr; font-family: Arial, sans-serif; font-weight: 700; white-space: nowrap; width: 33mm; }
+  table.totals tr.g td { background: #1f6a35; color: #fff; border-color: #1f6a35; font-size: 10.6pt; font-weight: 700; }
+  table.totals tr.g .en { color: #d7ead9; }
+  .words { margin-top: 0; font-size: 9.2pt; }
+  .words b { display: block; margin-top: 0.6mm; }
+  .bank { margin-top: 3.5mm; border: 0.3mm dashed #8fb497; border-radius: 2mm; padding: 2mm 3mm; font-size: 8.8pt; }
+  .bank .h { font-weight: 700; color: #1f6a35; margin-bottom: 0.8mm; }
+  .bank .h .en { display: inline; margin-right: 1.5mm; font-weight: 700; color: #1f6a35; }
+  .bank .iban { font-family: "SF Mono", Menlo, monospace; font-size: 9pt; font-weight: 700; color: #173f22; white-space: nowrap; unicode-bidi: isolate; }
+  .en.i { display: inline; font-size: 7.2pt; }
+  .notes { margin-top: 3.5mm; font-size: 8.6pt; color: #333; }
+  .notes .en { font-size: 7.4pt; }
+
+  .bottom { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; padding-top: 4mm; }
+  .stampblock { width: 58mm; text-align: center; position: relative; height: 34mm; }
+  .stampblock .stamp { position: absolute; width: 29mm; height: 29mm; right: 14mm; top: -1mm; transform: rotate(-11deg); opacity: 0.9; }
+  .stampblock .lbl { position: absolute; left: 0; right: 0; bottom: 0; border-top: 0.3mm dotted #666; padding-top: 1mm; font-size: 8.6pt; }
+  .stampblock .lbl .en { display: inline; margin-right: 1mm; }
+  .qrbox { display: flex; align-items: flex-end; gap: 3mm; direction: ltr; }
+  .qr { width: 28mm; height: 28mm; }
+  .qr svg { width: 100%; height: 100%; display: block; }
+  .qrcap { font-size: 7.2pt; color: #555; direction: rtl; text-align: right; max-width: 40mm; }
+  .qrcap .en { font-size: 6.9pt; }
+
+  footer { margin-top: 4mm; border-top: 0.3mm solid #b8d0bb; padding-top: 2mm; display: flex; justify-content: space-between; font-size: 7.6pt; color: #555; }
+  footer .en { display: inline; font-size: 7pt; color: #777; }
+  footer .demo { color: #888; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar"></div><div class="topbar2"></div>
+  <div class="top">
+    <div class="co">
+      <h1>${S.nameAr}</h1>
+      <div class="name-en">${S.nameEn.toUpperCase()}</div>
+      <p>${S.addressAr}<span class="en">${S.addressEn}</span></p>
+      <p>الرقم الضريبي <span class="en">VAT No.</span> ${ltr(S.vat)} &nbsp;|&nbsp; السجل التجاري <span class="en">CR No.</span> ${ltr(S.cr)}</p>
+      <p>البريد الإلكتروني <span class="en">Email</span> ${ltr(S.email)}</p>
+    </div>
+    <div class="doc">
+      <div class="t">فاتورة ضريبية</div>
+      <div class="te">TAX INVOICE</div>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="meta">
+    ${meta("رقم الفاتورة", "Invoice no.", ltr(inv.id))}
+    ${meta("تاريخ الفاتورة", "Invoice date", `${ltr(inv.issueDateShown)}م`)}
+    ${meta("تاريخ الاستحقاق", "Due date", `${ltr(inv.dueDateShown)}م`)}
+    ${meta("فترة التوريد", "Supply period", `${inv.supplyAr}`)}
+    ${meta("طريقة الدفع", "Payment method", "تحويل بنكي")}
+    ${meta("العملة", "Currency", "ريال سعودي")}
+  </div>
+
+  <div class="box">
+    <div class="h"><span>بيانات العميل</span><span class="en">Customer</span></div>
+    <div class="body">
+      <div><span class="k">الاسم<span class="en">Name</span>:</span> <b>${B.nameAr}</b></div>
+      <div class="num" dir="ltr" style="text-align:left"><b>${B.nameEn}</b></div>
+      <div><span class="k">الرقم الضريبي<span class="en">VAT no.</span>:</span> ${ltr(B.vat)}</div>
+      <div style="text-align:left"><span class="k">السجل التجاري<span class="en">CR no.</span>:</span> ${ltr(B.cr)}</div>
+      <div style="grid-column: 1 / -1"><span class="k">العنوان<span class="en">Address</span>:</span> ${bar.building} ${bar.street}، ${bar.district}، ${bar.city} ${bar.postal}</div>
+    </div>
+  </div>
+
+  <table class="items">
+    <colgroup>
+      <col style="width:8mm"><col><col style="width:17mm"><col style="width:13mm"><col style="width:20mm">
+      <col style="width:22mm"><col style="width:19mm"><col style="width:22mm">
+    </colgroup>
+    <thead><tr>
+      <th>م${en("#")}</th>
+      <th>البيان${en("Description")}</th>
+      <th>الوحدة${en("Unit")}</th>
+      <th>الكمية${en("Qty")}</th>
+      <th>سعر الوحدة${en("Unit price")}</th>
+      <th>المبلغ قبل الضريبة${en("Taxable amount")}</th>
+      <th>الضريبة 15%${en("VAT 15%")}</th>
+      <th>الإجمالي${en("Total incl. VAT")}</th>
+    </tr></thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+
+  <div class="sum">
+    <div class="left">
+      <div class="words">المبلغ كتابةً<span class="en" style="display:inline;margin-right:1mm">Amount in words</span>:
+        <b>${inv.totalInWordsAr}</b>${en(inv.totalInWordsEn)}
+      </div>
+      <div class="bank">
+        <div class="h">بيانات التحويل البنكي<span class="en">Bank transfer details</span></div>
+        <div>البنك <span class="en i">Bank</span>: ${S.bankAr} <span class="en i">(${S.bankEn})</span></div>
+        <div style="margin-top:0.6mm">اسم الحساب <span class="en i">Account name</span>: ${S.nameAr}</div>
+        <div style="margin-top:0.6mm">الآيبان <span class="en i">IBAN</span>: <span class="iban" dir="ltr">${ibanGroups(S.iban)}</span></div>
+      </div>
+      <div class="notes">ملاحظات: نُفذت الأعمال في موقع العميل خلال شهر سبتمبر 2026. يرجى ذكر رقم الفاتورة عند التحويل.
+        ${en("Notes: work carried out at the customer's site during September 2026. Please quote the invoice number on your transfer.")}
+      </div>
+    </div>
+    <table class="totals">
+      <tr><td>المجموع قبل الضريبة${en("Subtotal (excl. VAT)")}</td><td class="n">${SAR_DISPLAY(t.subtotal)}</td></tr>
+      <tr><td>ضريبة القيمة المضافة (15%)${en("VAT (15%)")}</td><td class="n">${SAR_DISPLAY(t.vat)}</td></tr>
+      <tr class="g"><td>الإجمالي شامل الضريبة${en("Total incl. VAT (SAR)")}</td><td class="n">${SAR_DISPLAY(t.total)} ر.س</td></tr>
+    </table>
+  </div>
+
+  <div class="bottom">
+    <div class="stampblock">
+      ${stampSvg({ ink: false })}
+      <div class="lbl">الختم<span class="en">Company stamp</span></div>
+    </div>
+    <div class="qrbox">
+      <div class="qr">${qr}</div>
+      <div class="qrcap">رمز الاستجابة السريعة${en("QR code: seller, VAT no., time stamp, total, VAT")}</div>
+    </div>
+  </div>
+
+  <footer>
+    <span>شكراً لتعاملكم معنا <span class="en">Thank you for your business</span></span>
+    <span class="demo">مستند تجريبي – بيانات وهمية <span class="en">Demo document, fictitious data</span></span>
+  </footer>
+</div>
 </body>
 </html>
 `;

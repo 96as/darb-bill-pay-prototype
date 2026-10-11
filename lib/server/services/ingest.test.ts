@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { ingestFile, submitBill, dismissDuplicate, listBills, getBillDetail, createManualBill } from "./bills";
 import { processEmail, listEmails } from "./inbox";
-import { SEED_IDS, FIXTURE_PDF, FIXTURE_PHOTO } from "../seed";
+import { SEED_IDS, FIXTURE_PDF, FIXTURE_PHOTO, FIXTURE_SAVED_PDF } from "../seed";
 import { addSupplierB, expectCode, fixture, NOURA, processSeedEmail, setup, IBAN_B } from "../test-helpers";
 import { BILLION_LAUGHS_XML, XXE_XML } from "@/lib/domain/__fixtures__/hostile-xml";
 
@@ -81,7 +81,7 @@ describe("ingest the fixture PDF/A-3 (promise A)", () => {
     const err = await expectCode(() => ingestFile(ctx, { bytes: enc.encode(xml), filename: "evil.xml", source: "upload", actorId: NOURA }), "unsafe_xml");
     expect(err.httpStatus).toBe(422);
     expect(ctx.store.bills.length).toBe(3);
-    expect(ctx.store.files.length).toBe(0);
+    expect(ctx.store.files.map((f) => f.id)).toEqual([SEED_IDS.files.savedDraft]); // nothing stored
   });
 
   it("refuses the fixture hostile files too", async () => {
@@ -182,6 +182,15 @@ describe("duplicates (BP-04)", () => {
     dismissDuplicate(ctx, bill.id, NOURA);
     expect(ctx.store.audit.at(-1)).toMatchObject({ action: "bill.duplicate_dismissed", before: { duplicateOf: einvoice.id } });
     expect(submitBill(ctx, bill.id, NOURA, { payDate: "2026-10-15" }).bill.status).toBe("awaiting_approval");
+  });
+
+  it("flags the saved bill's PDF uploaded again by supplier + invoice number (no UUID in a plain PDF)", async () => {
+    const ctx = setup();
+    const { bill, duplicate } = await ingestFile(ctx, { bytes: await fixture(FIXTURE_SAVED_PDF), filename: "GOL-2026-0917-green-oasis.pdf", source: "upload", actorId: NOURA });
+    expect(bill).toMatchObject({ extraction: "ocr", supplierId: SEED_IDS.supplierA, invoiceNumber: "GOL-2026-0917", total: 1_250_000, needsReview: [] });
+    expect(bill.invoiceUuid).toBeUndefined();
+    expect(duplicate).toEqual({ billId: SEED_IDS.bills.savedDraft, reason: "supplier_invoice_number" });
+    expect(bill).toMatchObject({ duplicateOf: SEED_IDS.bills.savedDraft, duplicateReason: "supplier_invoice_number" });
   });
 
   it("flags a manual bill with the same supplier and invoice number", () => {
