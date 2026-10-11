@@ -96,6 +96,16 @@ The PRD left these open. Each is the default the prototype uses; change it in on
 20. **Fake data only.** Company, people, suppliers, VAT numbers (15 digits, starting and ending in 3), CRs and checksum-valid IBANs are invented. Email domains use `.example`. Bank names are only derived from the IBAN bank code. The SADAD biller is a made-up "National Power Utility (demo biller)".
 21. **Logo.** There was no `docs/style/logo.png`, so the sidebar shows the word "Darb". The layout follows the app render on darbpay.com and the tokens in the brief.
 
+## Known limitations
+
+These are prototype-level gaps, not product decisions.
+
+- Reject/Decline does not ask for a reason. The API accepts one.
+- Server messages are translated for the known error codes (`lib/i18n/errors.ts`). Anything else falls back to English. Data such as email subjects and bank-returned names stays as received.
+- Invoice previews draw PDFs with pdf.js. File responses are sandboxed, so **Download** saves PDFs and XML rather than opening them in a new tab.
+- One demo store is shared by every browser tab. To run several dev servers side by side, give each its own `NEXT_DIST_DIR` and `DARB_DATA_DIR`.
+- Saudi public holidays and amount-based approval chains are not modelled (see Assumptions 1 and 9).
+
 ## Not built (PRD: Next, Later, Out, or BP-16)
 
 Recurring payments, two-way or multi-system sync, auto-pay rules, supplier portal and onboarding link (BP-16), Darb-to-Darb payments, overseas suppliers, PO matching, partial payments, credit notes, direct debit, paying from the client's own bank, real bank, ZATCA, OCR, email or accounting integrations, and authentication beyond the user switcher.
