@@ -42,5 +42,7 @@ next-env.d.ts
 
 # demo state
 /data/store.json
+/data/store.json.*.tmp
+/data/files/
 .DS_Store
 .claude/

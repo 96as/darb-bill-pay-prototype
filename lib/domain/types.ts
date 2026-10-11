@@ -173,6 +173,13 @@ export interface Approval {
   ibanSnapshot?: string;
 }
 
+/** An approver sent a bill or run back to draft. */
+export interface Rejection {
+  by: string;
+  at: ISODateTime;
+  reason?: string;
+}
+
 export interface Bill {
   id: string;
   kind: "supplier" | "sadad";
@@ -204,6 +211,10 @@ export interface Bill {
   sadad?: { billerName: string; billerNameAr: string; billerCode: string; billNumber: string };
 
   status: BillStatus;
+  /** Reader warnings shown with the draft (e.g. "IBAN on the invoice differs from the saved IBAN"). */
+  warnings?: string[];
+  /** Set when an approver sends the bill back to draft. */
+  rejection?: Rejection;
   duplicateOf?: string;
   duplicateReason?: "invoice_uuid" | "supplier_invoice_number";
 
@@ -260,6 +271,8 @@ export interface Payment {
   rail: Rail;
   scheduledFor: ISODateTime;
   expectedArrival: ISODate;
+  /** Latest rail quote for this payment (rail, send time, arrival, reason); kept in step with scheduledFor/expectedArrival. */
+  quote?: RailQuote;
   iban?: string;
   status: PaymentStatus;
   holdReason?: "iban_change" | "short_balance" | "daily_limit" | "supplier_check";
@@ -284,6 +297,7 @@ export interface PaymentRun {
   submittedBy?: string;
   submittedAt?: ISODateTime;
   approvals: Approval[];
+  rejection?: Rejection;
 }
 
 // ---------- Side effects (mocked) ----------
@@ -371,5 +385,12 @@ export interface StoreData {
   emails: InboundEmail[];
   files: StoredFile[];
   /** Request keys the mock rail has accepted (idempotency). */
-  railLedger: { requestKey: string; transferRef: string; at: ISODateTime }[];
+  railLedger: {
+    requestKey: string;
+    transferRef: string;
+    at: ISODateTime;
+    /** Outcome the mock rail gave the first time; a repeated key gets the same answer. */
+    status?: "settled" | "returned";
+    amount?: Halalas;
+  }[];
 }
