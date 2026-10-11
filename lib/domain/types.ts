@@ -134,6 +134,8 @@ export interface ExtractedInvoice {
   supplierVat?: string;
   supplierCr?: string;
   supplierIban?: string;
+  /** Supplier contact email from the e-invoice (Party/Contact/ElectronicMail); prefills the notice email. */
+  supplierEmail?: string;
   supplierAddress?: string;
   buyerName?: string;
   buyerVat?: string;
@@ -206,7 +208,7 @@ export interface Bill {
   fieldSources: Partial<Record<BillFieldKey, FieldSource>>;
   needsReview: BillFieldKey[];
   /** Suggested supplier details from the e-invoice (used to prefill "Add supplier"). */
-  suggestedSupplier?: Pick<ExtractedInvoice, "supplierName" | "supplierNameAr" | "supplierVat" | "supplierCr" | "supplierIban" | "supplierAddress">;
+  suggestedSupplier?: Pick<ExtractedInvoice, "supplierName" | "supplierNameAr" | "supplierVat" | "supplierCr" | "supplierIban" | "supplierEmail" | "supplierAddress">;
 
   sadad?: { billerName: string; billerNameAr: string; billerCode: string; billNumber: string };
 
@@ -271,8 +273,10 @@ export interface Payment {
   rail: Rail;
   scheduledFor: ISODateTime;
   expectedArrival: ISODate;
-  /** Latest rail quote for this payment (rail, send time, arrival, reason); kept in step with scheduledFor/expectedArrival. */
+  /** Quote given at approval (shown on the run and approval screens, promise C); later holds and sending never change it. */
   quote?: RailQuote;
+  /** Quote at the moment it was sent (railAndArrival at sentAt); expectedArrival and the supplier notice follow it. */
+  sentQuote?: RailQuote;
   iban?: string;
   status: PaymentStatus;
   holdReason?: "iban_change" | "short_balance" | "daily_limit" | "supplier_check";

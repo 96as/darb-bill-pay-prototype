@@ -62,7 +62,7 @@ export function quoteFor(ctx: Ctx, bill: Bill, payDate: ISODate): RailQuote {
   return bill.kind === "sadad" ? quoteSadadPayment(payDate, ctx.now) : quotePayment(bill.total, payDate, ctx.now);
 }
 
-/** The quote shown for an existing payment: the one stored with it, else rebuilt from its fields. */
+/** The quote shown for an existing payment: the approval quote stored with it, else rebuilt from its fields. */
 export function quoteOfPayment(payment: Payment): RailQuote {
   return (
     payment.quote ?? {

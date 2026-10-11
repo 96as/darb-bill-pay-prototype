@@ -36,7 +36,7 @@ describe("ingest the fixture PDF/A-3 (promise A)", () => {
       total: 4_500_000,
       needsReview: [],
       createdBy: NOURA,
-      suggestedSupplier: { supplierIban: IBAN_B, supplierVat: "310387452600003" },
+      suggestedSupplier: { supplierIban: IBAN_B, supplierVat: "310387452600003", supplierEmail: "finance@coolbreeze-hvac.example" },
     });
     expect(Object.keys(bill.fieldSources).sort()).toEqual([...XML_FIELDS].sort());
     expect(Object.values(bill.fieldSources).every((s) => s === "xml")).toBe(true);

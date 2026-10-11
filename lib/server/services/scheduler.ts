@@ -132,11 +132,12 @@ function send(ctx: Ctx, p: Payment, bill: Bill, report: SchedulerReport): void {
   }
 
   if (!result.duplicate) account.balance -= p.amount;
-  const quote = p.rail === "sadad" ? sadadQuote(new Date(result.at)) : railAndArrival(p.amount, new Date(result.at));
+  // p.quote stays the approval quote (what the screens showed); the send-time quote is kept beside it.
+  const sentQuote = p.rail === "sadad" ? sadadQuote(new Date(result.at)) : railAndArrival(p.amount, new Date(result.at));
   p.status = "settled"; // BUILD-NOTES 7: settlement is instant in the mock
   p.settledAt = result.at;
-  p.expectedArrival = quote.arrivalDate;
-  p.quote = quote;
+  p.sentQuote = sentQuote;
+  p.expectedArrival = sentQuote.arrivalDate;
   assertTransition(bill.status, "paid");
   bill.status = "paid";
   audit(ctx, SYSTEM, "payment.sent", { type: "payment", id: p.id }, before, {
@@ -199,7 +200,7 @@ export function runScheduler(ctx: Ctx): SchedulerReport {
     const quote = p.rail === "sadad" ? sadadQuote(ctx.now) : railAndArrival(p.amount, ctx.now);
     if (Date.parse(quote.sendAt) > ctx.now.getTime()) {
       // SARIE closed (after cut-off or weekend): wait for the next window.
-      Object.assign(p, { status: "scheduled", scheduledFor: quote.sendAt, expectedArrival: quote.arrivalDate, quote });
+      Object.assign(p, { status: "scheduled", scheduledFor: quote.sendAt, expectedArrival: quote.arrivalDate });
       delete p.holdReason;
       report.waiting.push(p.id);
       continue;
@@ -216,7 +217,7 @@ export function runScheduler(ctx: Ctx): SchedulerReport {
     const retry = retryAt(today(ctx));
     for (const r of plan.hold) {
       const quote = r.payment.rail === "sadad" ? sadadQuote(retry) : railAndArrival(r.payment.amount, retry);
-      hold(ctx, r.payment, "short_balance", report, { scheduledFor: quote.sendAt, expectedArrival: quote.arrivalDate, quote });
+      hold(ctx, r.payment, "short_balance", report, { scheduledFor: quote.sendAt, expectedArrival: quote.arrivalDate });
     }
     const total = plan.hold.reduce((s, r) => s + r.amount, 0);
     notify(

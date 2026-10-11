@@ -185,6 +185,7 @@ export async function ingestFile(ctx: Ctx, input: IngestInput): Promise<IngestRe
             supplierVat: extracted.supplierVat,
             supplierCr: extracted.supplierCr,
             supplierIban: extracted.supplierIban,
+            supplierEmail: extracted.supplierEmail,
             supplierAddress: extracted.supplierAddress,
           },
         }

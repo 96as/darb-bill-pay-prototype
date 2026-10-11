@@ -126,6 +126,9 @@
       <cac:PartyLegalEntity>
         <cbc:RegistrationName>Cool Breeze HVAC Contracting Co. | شركة النسيم البارد للمقاولات والتكييف</cbc:RegistrationName>
       </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:ElectronicMail>finance@coolbreeze-hvac.example</cbc:ElectronicMail>
+      </cac:Contact>
     </cac:Party>
   </cac:AccountingSupplierParty>
   <cac:AccountingCustomerParty>

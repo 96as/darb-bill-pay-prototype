@@ -102,6 +102,8 @@ function addressOf(party: unknown): string | undefined {
   );
 }
 
+const SIMPLE_EMAIL = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
+
 const REVIEW_ORDER: BillFieldKey[] = [
   "supplierName",
   "supplierNameAr",
@@ -161,6 +163,9 @@ export function parseZatcaInvoice(xml: string): ExtractedInvoice {
   } else warnings.push("No supplier CR (schemeID CRN) in the e-invoice");
 
   out.supplierAddress = addressOf(seller);
+  // Contact email prefills the supplier's notice email; anything not shaped like an email is ignored.
+  const email = first(seller, "Contact", "ElectronicMail");
+  if (email && SIMPLE_EMAIL.test(email)) out.supplierEmail = email;
 
   // Buyer
   const buyer = all(inv, "AccountingCustomerParty", "Party")[0];

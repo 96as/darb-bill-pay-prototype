@@ -19,6 +19,7 @@ describe("parseZatcaInvoice: bilingual ZATCA invoice (Supplier B, INV-2026-0451)
       supplierVat: "310387452600003",
       supplierCr: "1010932185",
       supplierIban: "SA6710000000020315550044",
+      supplierEmail: "finance@coolbreeze-hvac.example",
       supplierAddress: "7421 King Fahd Road, Al Olaya, Riyadh 12214, SA",
       buyerName: "Sahab Facility Services Co.",
       buyerVat: "310458812300003",
@@ -199,6 +200,14 @@ describe("parseZatcaInvoice: review flags", () => {
     expect(inv.supplierName).toBe("Green Oasis Landscaping Est.");
     expect(inv.supplierNameAr).toBe("مؤسسة الواحة الخضراء لتنسيق الحدائق");
     expect(inv.language).toBe("bilingual");
+  });
+
+  it("reads the supplier contact email, ignoring anything not shaped like an email", () => {
+    expect(parseZatcaInvoice(ENGLISH).supplierEmail).toBeUndefined(); // no Contact in that file
+    for (const bad of ["finance at coolbreeze", "a@b", "&lt;script&gt;@x.example", ""]) {
+      const xml = BILINGUAL.replace("finance@coolbreeze-hvac.example", bad);
+      expect(parseZatcaInvoice(xml).supplierEmail, bad).toBeUndefined();
+    }
   });
 
   it("does not split an English name that contains a slash", () => {

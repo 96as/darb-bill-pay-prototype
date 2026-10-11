@@ -80,7 +80,9 @@ describe("short balance (BP-10)", () => {
     ctx.store.accounts[0].balance = 1_500_000; // 15,000: covers the 12,500 bill (due 14 Oct), not also the 8,050 (due 25 Oct)
     approveRun(ctx, run.id, FAISAL);
     expect(billOf(ctx, saved.id).status).toBe("paid");
-    expect(paymentOf(ctx, photo.id)).toMatchObject({ status: "held", holdReason: "short_balance", scheduledFor: "2026-10-18T06:00:00.000Z" });
+    expect(paymentOf(ctx, photo.id)).toMatchObject({ status: "held", holdReason: "short_balance", scheduledFor: "2026-10-18T06:00:00.000Z", expectedArrival: "2026-10-18" });
+    // The approval quote is what was promised on screen; the retry moves expectedArrival only.
+    expect(paymentOf(ctx, photo.id)!.quote).toMatchObject({ rail: "instant", arrivalDate: "2026-10-15" });
     expect(balanceOf(ctx)).toBe(250_000);
     expect(ctx.store.alerts.find((a) => a.kind === "short_balance" && a.to === NOURA)?.message).toMatch(/retry on 2026-10-18 at 09:00/);
 
@@ -88,6 +90,9 @@ describe("short balance (BP-10)", () => {
     ctx.store.accounts[0].balance += 10_000_000;
     advance(ctx, "2026-10-18", "09:00");
     expect(billOf(ctx, photo.id).status).toBe("paid");
+    // When the two differ, expectedArrival and the notice follow the latest (send-time) quote.
+    expect(paymentOf(ctx, photo.id)).toMatchObject({ expectedArrival: "2026-10-18", sentQuote: { arrivalDate: "2026-10-18" }, quote: { arrivalDate: "2026-10-15" } });
+    expect(ctx.store.notices.find((n) => n.billId === photo.id)!.bodyEn).toContain("Expected arrival: Sunday 18 October 2026");
     expect(ctx.store.runs[0].status).toBe("completed");
   });
 

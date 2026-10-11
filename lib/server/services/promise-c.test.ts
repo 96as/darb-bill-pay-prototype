@@ -37,7 +37,12 @@ describe("SAR 45,000 submitted Thursday 16:10 arrives Sunday 18 October", () => 
     // 4. Sunday 09:00 it leaves; the supplier notice states the same arrival, computed by the same function.
     advance(ctx, "2026-10-18", "09:00");
     expect(payment.status).toBe("settled");
-    expect(noticeArrival(payment)).toBe(reference.arrivalDate);
+    // The approval quote is kept as shown (why it arrives after the pay date); the send-time quote sits beside it.
+    expect(payment.quote).toEqual(reference);
+    expect(payment.sentQuote).toEqual({ rail: "sarie", sendAt: "2026-10-18T06:00:00.000Z", arrivalDate: "2026-10-18", sameDay: true, reason: "sarie_in_window" });
+    expect(payment.expectedArrival).toBe(reference.arrivalDate);
+    expect(noticeArrival(payment)).toBe(payment.quote!.arrivalDate);
+    expect(getRun(ctx, run.id).items.find((i) => i.bill.id === einvoice.id)!.quote).toEqual(fromRunScreen);
     const notice = ctx.store.notices.find((n) => n.billId === einvoice.id)!;
     expect(notice.bodyEn).toContain("Expected arrival: Sunday 18 October 2026");
     expect(notice.bodyAr).toContain("موعد الوصول المتوقع: الأحد 18 أكتوبر 2026");

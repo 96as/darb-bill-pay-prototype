@@ -169,6 +169,7 @@ describe("Step 3 — add the supplier, then change its IBAN (BP-05, BP-06, BP-07
   it("BP-05/BP-06: adding Cool Breeze from the e-invoice passes the name check and screening, and links b_1 by VAT number", async () => {
     const { body: b1 } = await call<BillDetail>(bill.GET, "GET", "/api/bills/b_1", { params: { id: "b_1" } });
     const s = b1.bill.suggestedSupplier!;
+    expect(s.supplierEmail).toBe("finance@coolbreeze-hvac.example");
     const { status, body } = await call<{ supplier: Supplier }>(payees.POST, "POST", "/api/payees", {
       json: {
         nameEn: s.supplierName,
@@ -176,7 +177,7 @@ describe("Step 3 — add the supplier, then change its IBAN (BP-05, BP-06, BP-07
         vatNumber: s.supplierVat,
         crNumber: s.supplierCr,
         iban: s.supplierIban,
-        noticeEmail: "finance@coolbreeze-hvac.example",
+        noticeEmail: s.supplierEmail, // prefilled from the e-invoice's supplier contact
         fromBillId: "b_1",
       },
     });
@@ -385,6 +386,11 @@ describe("Step 6 — what the supplier receives and what lands in accounting (BP
     const { body: b1 } = await call<BillDetail>(bill.GET, "GET", "/api/bills/b_1", { params: { id: "b_1" } });
     expect(b1.bill.status).toBe("paid");
     expect(b1.payment).toMatchObject({ status: "settled", iban: IBAN_B_NEW, expectedArrival: "2026-10-18" });
+    // The approval quote (why it arrives after the pay date) is kept; the send-time quote is stored beside it.
+    const q4 = stepFourQuotes.find((q) => q.billId === "b_1")!;
+    expect(b1.payment!.quote).toEqual({ rail: q4.rail, sendAt: q4.sendAt, arrivalDate: q4.arrivalDate, sameDay: q4.sameDay, reason: q4.reason });
+    expect(b1.payment!.quote!.reason).toBe("sarie_after_cutoff");
+    expect(b1.payment!.sentQuote).toMatchObject({ reason: "sarie_in_window", arrivalDate: "2026-10-18" });
 
     const { body: n } = await call<{ notices: SupplierNotice[] }>(notices.GET, "GET", "/api/notices?billId=b_1");
     expect(n.notices).toHaveLength(1);
