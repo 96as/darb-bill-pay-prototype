@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Cairo } from "next/font/google";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { dirOf } from "@/lib/i18n/config";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getLang } from "@/lib/i18n/server";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -11,11 +15,20 @@ export const metadata: Metadata = {
   description: "Darb Bill Pay prototype (demo, not production)",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const lang = await getLang();
   return (
-    <html lang="en" dir="ltr">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${cairo.variable} antialiased`}>
-        {children}
+    // Font variables sit on <html> so `html { font-family: var(--font-sans) }` and the
+    // `html[lang="ar"]` Cairo rule in globals.css can resolve them.
+    <html
+      lang={lang}
+      dir={dirOf(lang)}
+      className={`${geistSans.variable} ${geistMono.variable} ${cairo.variable}`}
+    >
+      <body className="antialiased">
+        <I18nProvider lang={lang}>
+          <TooltipProvider delay={300}>{children}</TooltipProvider>
+        </I18nProvider>
       </body>
     </html>
   );
