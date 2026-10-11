@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Arabic-only invoice with unusual namespace prefixes (inv/a/b) to prove the reader is prefix-agnostic. -->
+<inv:Invoice xmlns:inv="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+             xmlns:a="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+             xmlns:b="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <b:ProfileID>reporting:1.0</b:ProfileID>
+  <b:ID>GOL-2026-1003</b:ID>
+  <b:UUID>A3C1F0E2-7B44-4C9D-9E1A-5F6B7C8D9E01</b:UUID>
+  <b:IssueDate>2026-10-10</b:IssueDate>
+  <b:InvoiceTypeCode name="0100000">388</b:InvoiceTypeCode>
+  <b:Note>تنسيق الحدائق لشهر أكتوبر</b:Note>
+  <b:DocumentCurrencyCode>SAR</b:DocumentCurrencyCode>
+  <b:TaxCurrencyCode>SAR</b:TaxCurrencyCode>
+  <a:AccountingSupplierParty>
+    <a:Party>
+      <a:PartyIdentification>
+        <b:ID schemeID="CRN">1010847261</b:ID>
+      </a:PartyIdentification>
+      <a:PostalAddress>
+        <b:StreetName>شارع العليا</b:StreetName>
+        <b:BuildingNumber>3120</b:BuildingNumber>
+        <b:CitySubdivisionName>الورود</b:CitySubdivisionName>
+        <b:CityName>الرياض</b:CityName>
+        <b:PostalZone>12251</b:PostalZone>
+        <a:Country>
+          <b:IdentificationCode>SA</b:IdentificationCode>
+        </a:Country>
+      </a:PostalAddress>
+      <a:PartyTaxScheme>
+        <b:CompanyID>311902476500003</b:CompanyID>
+        <a:TaxScheme>
+          <b:ID>VAT</b:ID>
+        </a:TaxScheme>
+      </a:PartyTaxScheme>
+      <a:PartyLegalEntity>
+        <b:RegistrationName>مؤسسة الواحة الخضراء لتنسيق الحدائق</b:RegistrationName>
+      </a:PartyLegalEntity>
+    </a:Party>
+  </a:AccountingSupplierParty>
+  <a:AccountingCustomerParty>
+    <a:Party>
+      <a:PartyTaxScheme>
+        <b:CompanyID>310458812300003</b:CompanyID>
+        <a:TaxScheme>
+          <b:ID>VAT</b:ID>
+        </a:TaxScheme>
+      </a:PartyTaxScheme>
+      <a:PartyLegalEntity>
+        <b:RegistrationName>شركة سحاب للخدمات المرفقية</b:RegistrationName>
+      </a:PartyLegalEntity>
+    </a:Party>
+  </a:AccountingCustomerParty>
+  <a:PaymentMeans>
+    <b:PaymentMeansCode>42</b:PaymentMeansCode>
+    <b:PaymentDueDate>2026-10-25</b:PaymentDueDate>
+    <a:PayeeFinancialAccount>
+      <b:ID>SA5880000000318204466710</b:ID>
+    </a:PayeeFinancialAccount>
+  </a:PaymentMeans>
+  <a:TaxTotal>
+    <b:TaxAmount currencyID="SAR">1050.00</b:TaxAmount>
+  </a:TaxTotal>
+  <a:TaxTotal>
+    <b:TaxAmount currencyID="SAR">1050.00</b:TaxAmount>
+    <a:TaxSubtotal>
+      <b:TaxableAmount currencyID="SAR">7000.00</b:TaxableAmount>
+      <b:TaxAmount currencyID="SAR">1050.00</b:TaxAmount>
+      <a:TaxCategory>
+        <b:ID>S</b:ID>
+        <b:Percent>15.00</b:Percent>
+        <a:TaxScheme>
+          <b:ID>VAT</b:ID>
+        </a:TaxScheme>
+      </a:TaxCategory>
+    </a:TaxSubtotal>
+  </a:TaxTotal>
+  <a:LegalMonetaryTotal>
+    <b:LineExtensionAmount currencyID="SAR">7000.00</b:LineExtensionAmount>
+    <b:TaxExclusiveAmount currencyID="SAR">7000.00</b:TaxExclusiveAmount>
+    <b:TaxInclusiveAmount currencyID="SAR">8050.00</b:TaxInclusiveAmount>
+    <b:PayableAmount currencyID="SAR">8050.00</b:PayableAmount>
+  </a:LegalMonetaryTotal>
+  <a:InvoiceLine>
+    <b:ID>1</b:ID>
+    <b:InvoicedQuantity unitCode="MON">1</b:InvoicedQuantity>
+    <b:LineExtensionAmount currencyID="SAR">7000.00</b:LineExtensionAmount>
+    <a:Item>
+      <b:Name>صيانة المسطحات الخضراء - أكتوبر ٢٠٢٦</b:Name>
+    </a:Item>
+    <a:Price>
+      <b:PriceAmount currencyID="SAR">7000.00</b:PriceAmount>
+    </a:Price>
+  </a:InvoiceLine>
+</inv:Invoice>

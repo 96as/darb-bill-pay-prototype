@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+  <cbc:ID>GOL-2026-0917</cbc:ID>
+  <cbc:UUID>0b8e2f6a-5c1d-4e7f-8a93-2d4c6b1e9f05</cbc:UUID>
+  <cbc:IssueDate>2026-09-20</cbc:IssueDate>
+  <cbc:IssueTime>11:05:00</cbc:IssueTime>
+  <cbc:DueDate>2026-10-14</cbc:DueDate>
+  <cbc:InvoiceTypeCode name="0100000">388</cbc:InvoiceTypeCode>
+  <cbc:Note>Monthly landscaping, September &amp; irrigation check</cbc:Note>
+  <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
+  <cbc:TaxCurrencyCode>SAR</cbc:TaxCurrencyCode>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyIdentification>
+        <cbc:ID schemeID="CRN">1010847261</cbc:ID>
+      </cac:PartyIdentification>
+      <cac:PartyName>
+        <cbc:Name>Green Oasis Landscaping Est.</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>Olaya Street</cbc:StreetName>
+        <cbc:BuildingNumber>3120</cbc:BuildingNumber>
+        <cbc:CitySubdivisionName>Al Wurud</cbc:CitySubdivisionName>
+        <cbc:CityName>Riyadh</cbc:CityName>
+        <cbc:PostalZone>12251</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>SA</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>311902476500003</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>310458812300003</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Sahab Facility Services Co.</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>42</cbc:PaymentMeansCode>
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>SA58 8000 0000 3182 0446 6710</cbc:ID>
+    </cac:PayeeFinancialAccount>
+  </cac:PaymentMeans>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="SAR">1630.43</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="SAR">10869.57</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="SAR">1630.43</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>S</cbc:ID>
+        <cbc:Percent>15.00</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="SAR">1630.43</cbc:TaxAmount>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="SAR">10869.57</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="SAR">10869.57</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="SAR">12500.00</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="SAR">12500.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="MON">1</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="SAR">10869.57</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>Landscaping maintenance, September 2026</cbc:Name>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="SAR">10869.57</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>
+</Invoice>
