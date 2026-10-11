@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useLang } from "@/lib/i18n/client";
 import { errorMessage } from "./api";
 
 /**
@@ -11,6 +12,7 @@ import { errorMessage } from "./api";
  */
 export function useApiAction() {
   const router = useRouter();
+  const lang = useLang();
   const [pending, setPending] = useState(false);
 
   const run = useCallback(
@@ -26,13 +28,13 @@ export function useApiAction() {
         if (opts.refresh !== false) router.refresh();
         return result;
       } catch (error) {
-        toast.error(errorMessage(error));
+        toast.error(errorMessage(error, lang));
         return undefined;
       } finally {
         setPending(false);
       }
     },
-    [router],
+    [router, lang],
   );
 
   return { run, pending };

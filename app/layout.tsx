@@ -29,8 +29,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className="antialiased">
         <I18nProvider lang={lang}>
           <TooltipProvider delay={300}>{children}</TooltipProvider>
-          {/* Light theme only (Darb app); API errors and confirmations show here. */}
-          <Toaster theme="light" position="top-center" dir={dirOf(lang)} />
+          {/* Light theme only (Darb app); bottom-end so toasts never cover the demo bar (flips in Arabic). */}
+          <Toaster theme="light" position={lang === "ar" ? "bottom-left" : "bottom-right"} dir={dirOf(lang)} />
         </I18nProvider>
       </body>
     </html>

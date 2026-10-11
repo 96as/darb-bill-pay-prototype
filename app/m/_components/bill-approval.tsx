@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { useApiAction } from "@/components/darb/payment-actions";
 import { formatDayDate, formatInstant, payeeName, permissionMessage } from "@/components/darb/payment-format";
-import { billApprovalHint } from "@/components/darb/payment-rules";
+import { billApprovalHint, rejectHint } from "@/components/darb/payment-rules";
 import { StatusBadge } from "@/components/darb/status-badge";
 import { formatSAR } from "@/lib/domain/money";
 import { displayStatus } from "@/lib/domain/status";
@@ -93,6 +93,7 @@ export function MobileBillApproval({ view }: { view: BillApprovalView }) {
           approveLabel={fmt(m.approveOne, { amount: formatSAR(bill.total, lang) })}
           declineTitle={m.declineBillTitle}
           disabled={!hint?.ok}
+          declineDisabled={!(hint && rejectHint(hint).ok)}
           note={note}
           busy={busy !== null}
           onApprove={() => call("approve", `${path}/approve`, {}, { success: m.approvedToast })}

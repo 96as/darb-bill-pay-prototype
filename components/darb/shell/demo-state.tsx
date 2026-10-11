@@ -77,13 +77,13 @@ export function DemoStateProvider({ initial, children }: { initial: DemoShellDat
           toast.info(t.demo.localOnly);
         } else {
           revert();
-          toast.error(errorMessage(error));
+          toast.error(errorMessage(error, lang));
         }
       } finally {
         setPending(false);
       }
     },
-    [router, t.demo.localOnly],
+    [router, t.demo.localOnly, lang],
   );
 
   const setActingUser = useCallback(

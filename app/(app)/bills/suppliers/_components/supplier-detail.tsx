@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, KeyRound, PauseCircle, Phone } from "lucide-react";
+import { toast } from "sonner";
 import { Amount } from "@/components/darb/amount";
 import { ArabicText } from "@/components/darb/arabic-text";
 import { EmptyState } from "@/components/darb/empty-state";
@@ -27,7 +28,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { normalizeIban } from "@/lib/domain/iban";
-import { fmt } from "@/lib/i18n";
+import { fmt, plural } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
 import { api } from "@/lib/ui/api";
 import { formatDate, formatDateTime } from "@/lib/ui/format";
@@ -139,6 +140,24 @@ function PendingChange({ view }: { view: SupplierDetailView }) {
   const { run, pending } = useApiAction();
   const change = view.pending!;
   const id = view.supplier.id;
+  const supplierName = lang === "ar" ? view.supplier.nameAr : view.supplier.nameEn;
+
+  /** Approve, then say whether any of this supplier's bills must be approved again (they were paused by the change). */
+  async function approve() {
+    await run(
+      async () => {
+        await api.post(`/api/payees/${id}/bank-account/approve`);
+        const res = await api.get<{ rows: { bill: { supplierId?: string; status: string; approvals: unknown[] } }[] }>("/api/bills");
+        return res.rows.filter(
+          (r) => r.bill.supplierId === id && r.bill.status === "awaiting_approval" && r.bill.approvals.length === 0,
+        ).length;
+      },
+      {
+        onSuccess: (count) =>
+          toast.success(count > 0 ? plural(lang, t.suppliers.detail.approvedToastBills, count) : t.suppliers.detail.approvedToast),
+      },
+    );
+  }
   return (
     <section className="space-y-4 rounded-xl border border-warning-foreground/30 bg-warning/50 p-5" aria-labelledby="pending-change-title">
       <div className="flex items-start gap-3">
@@ -152,19 +171,25 @@ function PendingChange({ view }: { view: SupplierDetailView }) {
           </p>
         </div>
       </div>
-      <IbanCompare from={change.oldIban} to={change.newIban} toBank={change.newBank} />
+      <IbanCompare from={change.oldIban} to={change.newIban} toBank={lang === "ar" ? change.newBankAr : change.newBank} />
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">{t.suppliers.detail.newNameCheck}</span>
         <NameCheckBadge result={change.nameCheck.result} confirmed={Boolean(change.nameCheck.confirmedBy)} />
         <span dir="ltr" className="font-mono text-xs text-muted-foreground">{change.nameCheck.returnedName}</span>
         <MockBadge tooltip={t.suppliers.nameCheckTooltip} />
       </div>
+      {view.actingRole === "approver" ? (
+        // PRD fraud mitigation: advise calling the supplier on a known number before approving.
+        <Notice tone="warning" icon={Phone} className="bg-background/70">
+          {fmt(t.suppliers.detail.callBeforeApproving, { name: supplierName })}
+        </Notice>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="lg"
           className="px-4"
           disabled={!view.approveChangeGate.ok || pending}
-          onClick={() => run(() => api.post(`/api/payees/${id}/bank-account/approve`), { success: t.suppliers.detail.approvedToast })}
+          onClick={approve}
         >
           {t.suppliers.detail.approveChange}
         </Button>

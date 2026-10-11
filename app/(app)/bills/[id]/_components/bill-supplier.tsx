@@ -73,7 +73,7 @@ export function BillSupplier() {
             </Row>
             <Row label={t.billDetail.supplier.iban}>
               <span dir="ltr" className="tabular-nums">{supplier.ibanMasked}</span>
-              <span className="text-muted-foreground">· {supplier.bankName}</span>
+              <span className="text-muted-foreground">· {lang === "ar" ? supplier.bankNameAr : supplier.bankName}</span>
             </Row>
             <Row label={t.billDetail.supplier.nameCheck}>
               <NameCheckBadge result={supplier.nameCheck.result} confirmed={Boolean(supplier.nameCheck.confirmedBy)} />
@@ -121,7 +121,9 @@ export function BillSupplier() {
             {suggested.ibanMasked ? (
               <Row label={t.billDetail.supplier.ibanFromInvoice}>
                 <span dir="ltr" className="tabular-nums">{suggested.ibanMasked}</span>
-                {suggested.bankName ? <span className="text-muted-foreground">· {suggested.bankName}</span> : null}
+                {suggested.bankName ? (
+                  <span className="text-muted-foreground">· {lang === "ar" ? suggested.bankNameAr : suggested.bankName}</span>
+                ) : null}
                 {bill.extraction === "e_invoice" ? <SourceChip kind="e_invoice" /> : null}
               </Row>
             ) : null}

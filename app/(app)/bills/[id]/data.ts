@@ -27,6 +27,7 @@ export interface DetailSupplier {
   crNumber: string;
   ibanMasked: string;
   bankName: string;
+  bankNameAr: string;
   nameCheck: NameCheck;
   screening: ScreeningStatus;
   /** An IBAN change is waiting for approval: payments are paused (BP-07). */
@@ -42,6 +43,7 @@ export interface SuggestedSupplier {
   cr?: string;
   ibanMasked?: string;
   bankName?: string;
+  bankNameAr?: string;
 }
 
 export interface BillDetailView {
@@ -103,6 +105,7 @@ export async function loadBillDetail(id: string): Promise<BillDetailView | null>
           crNumber: supplier.crNumber,
           ibanMasked: maskIban(supplier.iban),
           bankName: supplier.bankName || saudiBankFromIban(supplier.iban)?.name || "",
+          bankNameAr: saudiBankFromIban(supplier.iban)?.nameAr || supplier.bankName || "",
           nameCheck: supplier.nameCheck,
           screening: supplier.screening.status,
           paused: Boolean(supplier.pendingBankChange),
@@ -118,6 +121,7 @@ export async function loadBillDetail(id: string): Promise<BillDetailView | null>
             cr: bill.suggestedSupplier?.supplierCr ?? bill.supplierCr,
             ibanMasked: suggestedIban ? maskIban(suggestedIban) : undefined,
             bankName: suggestedIban ? saudiBankFromIban(suggestedIban)?.name : undefined,
+            bankNameAr: suggestedIban ? saudiBankFromIban(suggestedIban)?.nameAr : undefined,
           }
         : undefined,
     duplicateOf: original

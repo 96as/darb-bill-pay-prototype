@@ -12,7 +12,7 @@ import { Panel, PanelHeader } from "@/components/darb/panel";
 import { useApiAction } from "@/components/darb/payment-actions";
 import { PaymentStatusBadge, RailChip, RunStatusBadge } from "@/components/darb/payment-badges";
 import { billReference, formatDayDate, formatInstant, permissionMessage } from "@/components/darb/payment-format";
-import { runApprovalHint } from "@/components/darb/payment-rules";
+import { rejectHint, runApprovalHint } from "@/components/darb/payment-rules";
 import { PaymentSection } from "@/components/darb/payment-section";
 import { useDemoState } from "@/components/darb/shell/demo-state";
 import { ShellTitleOverride } from "@/components/darb/shell/shell-title";
@@ -119,7 +119,7 @@ export function RunDetail({ view }: { view: RunDetailView }) {
               {awaiting ? (
                 <>
                   <RejectButton
-                    disabled={!hint?.ok || busy !== null}
+                    disabled={!(hint && rejectHint(hint).ok) || busy !== null}
                     onConfirm={() => call("reject", `${runPath}/reject`, {}, { success: d.rejectedToast })}
                   />
                   <Button
@@ -284,7 +284,8 @@ function RejectButton({ disabled, onConfirm }: { disabled: boolean; onConfirm: (
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="lg" className="px-4" disabled={disabled} />}>
+      {/* `disabled` goes on the Trigger: Base UI overrides it on the rendered element. */}
+      <DialogTrigger disabled={disabled} render={<Button variant="outline" size="lg" className="px-4" />}>
         {d.reject}
       </DialogTrigger>
       <DialogContent>

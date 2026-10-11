@@ -23,6 +23,8 @@ import {
   quoteFromPayment,
   type ApprovalContext,
 } from "@/components/darb/payment-rules";
+import { makeCtx } from "@/lib/server/context";
+import { billsSummary } from "@/lib/server/services";
 import { readStore } from "../../store";
 
 async function loadStore(): Promise<StoreData> {
@@ -274,7 +276,8 @@ export async function loadBillApproval(id: string): Promise<BillApprovalView | n
 export interface MobileHomeView {
   now: ISODateTime;
   today: ISODate;
-  balances: { main: Halalas; scheduled: Halalas; available: Halalas; subwallets: Halalas };
+  /** Main balance (BP-18), plus what is waiting for approval across accounts (bills and runs). */
+  balances: { main: Halalas; scheduled: Halalas; available: Halalas; pendingApproval: Halalas };
   runs: { run: PaymentRun; total: Halalas; billCount: number; submittedBy?: Person }[];
   bills: { bill: Bill; submittedBy?: Person }[];
   people: Record<string, Person>;
@@ -284,8 +287,8 @@ export interface MobileHomeView {
 export async function loadMobileHome(): Promise<MobileHomeView> {
   const store = await loadStore();
   const people = peopleOf(store);
-  const main = store.accounts.find((a) => a.kind === "main");
-  const scheduledMain = scheduledByAccount(store.payments)[main?.id ?? "main"] ?? 0;
+  const summary = billsSummary(makeCtx(store));
+  const main = summary.accounts.find((a) => a.kind === "main");
   const awaitingRuns = store.runs.filter((r) => r.status === "awaiting_approval");
   const runBillList = awaitingRuns.flatMap((r) => runBills(store, r));
   const standalone = store.bills.filter((b) => b.status === "awaiting_approval" && !b.runId);
@@ -294,9 +297,9 @@ export async function loadMobileHome(): Promise<MobileHomeView> {
     today: riyadhDate(store.clock.now),
     balances: {
       main: main?.balance ?? 0,
-      scheduled: scheduledMain,
-      available: (main?.balance ?? 0) - scheduledMain,
-      subwallets: store.accounts.filter((a) => a.kind === "subwallet").reduce((sum, a) => sum + a.balance, 0),
+      scheduled: main?.scheduled ?? 0,
+      available: main?.available ?? 0,
+      pendingApproval: summary.totals.pendingApproval,
     },
     runs: awaitingRuns.map((run) => {
       const bills = runBills(store, run);

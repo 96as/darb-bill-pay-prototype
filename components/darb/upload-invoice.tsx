@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { Bill } from "@/lib/domain/types";
-import { useT } from "@/lib/i18n/client";
+import { useI18n, useT } from "@/lib/i18n/client";
 import { api, errorMessage } from "@/lib/ui/api";
 import { formatFileSize } from "@/lib/ui/format";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,7 @@ export function fileIconFor(name: string) {
 
 /** POST /api/bills (multipart "file") → { bill, duplicate } → open the new bill (duplicate banner shows there). */
 function useUploadInvoice(onDone?: () => void) {
-  const t = useT();
+  const { t, lang } = useI18n();
   const router = useRouter();
   const [pending, setPending] = useState(false);
   async function upload(file: File) {
@@ -46,7 +46,7 @@ function useUploadInvoice(onDone?: () => void) {
       onDone?.();
       router.push(`/bills/${res.bill.id}`);
     } catch (error) {
-      toast.error(errorMessage(error));
+      toast.error(errorMessage(error, lang));
     } finally {
       setPending(false);
     }

@@ -12,6 +12,7 @@ import type { DemoUser } from "@/components/darb/shell/demo-state";
 import { LangToggle } from "@/components/darb/shell/lang-toggle";
 import { LANG_COOKIE, LANG_QUERY_PARAM, type Lang } from "@/lib/i18n/config";
 import { useI18n } from "@/lib/i18n/client";
+import { errorMessage } from "@/lib/i18n/errors";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "./bottom-sheet";
 
@@ -62,10 +63,10 @@ export function MobileShell({
       } catch (err) {
         // Until POST /api/demo/user exists, switch locally (like the desktop demo bar does today).
         if (err instanceof ApiError && (err.status === 404 || err.status === 405)) setActing(userId);
-        else toast.error(err instanceof ApiError && err.message ? err.message : t.payments.errors.generic);
+        else toast.error(err instanceof ApiError ? errorMessage(err.code, err.message || t.payments.errors.generic, lang) : t.payments.errors.generic);
       }
     },
-    [router, t],
+    [router, t, lang],
   );
 
   const setLang = useCallback(

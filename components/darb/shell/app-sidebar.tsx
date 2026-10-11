@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building } from "lucide-react";
@@ -10,9 +11,11 @@ import { useDemoState } from "./demo-state";
 import { DARB_LOGO_SRC, NAV_BOTTOM, NAV_GROUPS, type NavItem } from "./nav-config";
 
 export function DarbWordmark({ className }: { className?: string }) {
+  const { t } = useI18n();
   return (
     <Link
       href="/bills"
+      aria-label={`Darb · ${t.nav.bills}`}
       lang="en"
       className={cn(
         "inline-flex items-center gap-2 rounded-md font-sans text-xl leading-none font-medium tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -28,15 +31,17 @@ export function DarbWordmark({ className }: { className?: string }) {
   );
 }
 
-function NavEntry({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+function NavEntry({ item, onNavigate, inertDescId }: { item: NavItem; onNavigate?: () => void; inertDescId: string }) {
   const { t } = useI18n();
   const pathname = usePathname();
   const label = t.nav[item.key];
   const Icon = item.icon;
   const active = item.href ? pathname === item.href || pathname.startsWith(`${item.href}/`) : false;
 
+  // The NEW pill is visual only; the accessible name is the label alone.
   const badge = item.isNew ? (
     <span
+      aria-hidden
       className={cn(
         "ms-auto rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold",
         active ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
@@ -53,7 +58,9 @@ function NavEntry({ item, onNavigate }: { item: NavItem; onNavigate?: () => void
       <li>
         <span
           role="link"
+          aria-label={label}
           aria-disabled="true"
+          aria-describedby={inertDescId}
           title={t.nav.notInPrototype}
           className={cn(base, "cursor-default text-muted-foreground")}
         >
@@ -70,6 +77,7 @@ function NavEntry({ item, onNavigate }: { item: NavItem; onNavigate?: () => void
       <Link
         href={item.href}
         onClick={onNavigate}
+        aria-label={label}
         aria-current={active ? "page" : undefined}
         className={cn(
           base,
@@ -89,20 +97,25 @@ function NavEntry({ item, onNavigate }: { item: NavItem; onNavigate?: () => void
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { t, lang } = useI18n();
   const { company, actingUser } = useDemoState();
+  const descId = useId();
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* Shared description for the inert items (their tooltip says the same). */}
+      <span id={descId} className="sr-only">
+        {t.nav.notInPrototype}
+      </span>
       <nav aria-label={t.nav.label} className="flex-1 overflow-y-auto px-3 py-2">
         {NAV_GROUPS.map((group, i) => (
           <ul key={i} className={cn("space-y-0.5", i > 0 && "mt-3 border-t pt-3")}>
             {group.map((item) => (
-              <NavEntry key={item.key} item={item} onNavigate={onNavigate} />
+              <NavEntry key={item.key} item={item} onNavigate={onNavigate} inertDescId={descId} />
             ))}
           </ul>
         ))}
       </nav>
       <div className="px-3 pb-3">
         <ul>
-          <NavEntry item={NAV_BOTTOM} onNavigate={onNavigate} />
+          <NavEntry item={NAV_BOTTOM} onNavigate={onNavigate} inertDescId={descId} />
         </ul>
       </div>
       <div className="flex items-center gap-3 border-t px-4 py-3">

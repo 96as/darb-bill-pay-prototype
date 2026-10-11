@@ -231,7 +231,14 @@ export function BillFields() {
               {bill.warnings.map((w) => (
                 <li key={w} className="flex items-start gap-1.5">
                   <Info className="mt-px size-3.5 shrink-0" aria-hidden />
-                  <span lang="en">{w}</span>
+                  {lang === "ar" && /^Read by OCR/.test(w) ? (
+                    // The reader's OCR note, translated; the fields to check are highlighted above.
+                    <span>{t.billDetail.fields.ocrNote}</span>
+                  ) : (
+                    <span lang="en" dir="ltr">
+                      {w}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

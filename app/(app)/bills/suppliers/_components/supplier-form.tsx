@@ -57,7 +57,7 @@ function Field({
 
 /** Add supplier (BP-05, BP-06): prefilled from the e-invoice, IBAN checksum hint, then name check + screening (mock). */
 export function SupplierForm({ view }: { view: NewSupplierView }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const router = useRouter();
   const prefill = view.fromBill?.prefill ?? {};
   const fromEInvoice = view.fromBill?.extraction === "e_invoice";
@@ -67,7 +67,7 @@ export function SupplierForm({ view }: { view: NewSupplierView }) {
     vatNumber: prefill.vatNumber ?? "",
     crNumber: prefill.crNumber ?? "",
     iban: prefill.iban ? formatIban(prefill.iban) : "",
-    noticeEmail: "",
+    noticeEmail: prefill.noticeEmail ?? "",
     noticeMobile: "",
   });
   const [errors, setErrors] = useState<Partial<Record<FormKey | "notice", string>>>({});
@@ -109,7 +109,7 @@ export function SupplierForm({ view }: { view: NewSupplierView }) {
       toast.success(t.suppliers.form.saved);
       router.refresh();
     } catch (error) {
-      toast.error(errorMessage(error));
+      toast.error(errorMessage(error, lang));
     } finally {
       setPending(false);
     }
@@ -200,7 +200,7 @@ export function SupplierForm({ view }: { view: NewSupplierView }) {
           <PanelHeader title={t.suppliers.form.identity} action={<Building2 />} />
           <div className="grid gap-4 px-5 pb-5 sm:grid-cols-2">
             <Field id="s-name-en" label={t.suppliers.form.nameEn} chip={chip("nameEn")} error={errors.nameEn}>
-              <Input id="s-name-en" value={form.nameEn} onChange={set("nameEn")} className="h-9 bg-background" aria-invalid={errors.nameEn ? true : undefined} />
+              <Input id="s-name-en" dir="ltr" lang="en" value={form.nameEn} onChange={set("nameEn")} className="h-9 bg-background" aria-invalid={errors.nameEn ? true : undefined} />
             </Field>
             <Field id="s-name-ar" label={t.suppliers.form.nameAr} chip={chip("nameAr")}>
               <Input id="s-name-ar" dir="rtl" lang="ar" value={form.nameAr} onChange={set("nameAr")} className="h-9 bg-background font-arabic" />
@@ -226,7 +226,7 @@ export function SupplierForm({ view }: { view: NewSupplierView }) {
         <Panel>
           <PanelHeader title={t.suppliers.form.notice} description={t.suppliers.form.noticeHelp} action={<Mail className="size-4 text-muted-foreground" aria-hidden />} />
           <div className="grid gap-4 px-5 pb-5 sm:grid-cols-2">
-            <Field id="s-email" label={t.suppliers.form.noticeEmail}>
+            <Field id="s-email" label={t.suppliers.form.noticeEmail} chip={chip("noticeEmail")}>
               <Input id="s-email" type="email" dir="ltr" value={form.noticeEmail} onChange={set("noticeEmail")} className="h-9 bg-background" />
             </Field>
             <Field id="s-mobile" label={t.suppliers.form.noticeMobile}>

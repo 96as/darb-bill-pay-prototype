@@ -13,6 +13,8 @@ export interface AuditRow {
   href?: string;
   /** Short label for the entity, e.g. the invoice number or supplier name. */
   entityLabel?: string;
+  /** Arabic label when the entity has one (supplier names). */
+  entityLabelAr?: string;
   changes: AuditChange[];
 }
 
@@ -45,7 +47,7 @@ export function diffChanges(before: unknown, after: unknown): AuditChange[] {
     .filter((c) => c.before !== c.after);
 }
 
-function entityInfo(store: StoreData, entity: AuditEvent["entity"]): { href?: string; label?: string } {
+function entityInfo(store: StoreData, entity: AuditEvent["entity"]): { href?: string; label?: string; labelAr?: string } {
   switch (entity.type) {
     case "bill": {
       const bill = store.bills.find((b) => b.id === entity.id);
@@ -53,7 +55,7 @@ function entityInfo(store: StoreData, entity: AuditEvent["entity"]): { href?: st
     }
     case "supplier": {
       const s = store.suppliers.find((x) => x.id === entity.id);
-      return { href: `/bills/suppliers/${entity.id}`, label: s?.nameEn ?? entity.id };
+      return { href: `/bills/suppliers/${entity.id}`, label: s?.nameEn ?? entity.id, labelAr: s?.nameAr };
     }
     case "run": {
       const run = store.runs.find((r) => r.id === entity.id);
@@ -88,6 +90,7 @@ export function toAuditRows(store: StoreData, events: readonly AuditEvent[]): Au
       entity: e.entity,
       href: info.href,
       entityLabel: info.label,
+      entityLabelAr: info.labelAr,
       changes: diffChanges(e.before, e.after),
     };
   });

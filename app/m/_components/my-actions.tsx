@@ -46,19 +46,19 @@ export function MyActions({ view }: { view: MobileHomeView }) {
           currencyClassName="text-base font-normal text-muted-foreground"
         />
         <p className="mt-0.5 text-xs text-muted-foreground">{m.balanceSub}</p>
-        <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-sm">
-          <div>
-            <dt className="text-xs text-muted-foreground">{m.mainBalance}</dt>
-            <dd className="font-medium">
-              <Amount value={view.balances.main} />
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">{m.scheduled}</dt>
-            <dd className="font-medium">
-              <Amount value={view.balances.scheduled} />
-            </dd>
-          </div>
+        <dl className="mt-4 grid gap-2 border-t pt-3 text-sm">
+          {[
+            { label: m.mainBalance, value: view.balances.main },
+            { label: m.scheduled, value: view.balances.scheduled },
+            { label: m.awaitingApproval, value: view.balances.pendingApproval, strong: view.balances.pendingApproval > 0 },
+          ].map((row) => (
+            <div key={row.label} className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">{row.label}</dt>
+              <dd className={row.strong ? "font-medium text-warning-foreground" : "font-medium"}>
+                <Amount value={row.value} />
+              </dd>
+            </div>
+          ))}
         </dl>
       </section>
 

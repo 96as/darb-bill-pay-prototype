@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, FileCode, FileQuestion, FileX, Minus, Plus, ScanSearch } from "lucide-react";
+import { Download, ExternalLink, FileCode, FileQuestion, FileX, Minus, Plus, ScanSearch } from "lucide-react";
 import { EmptyState } from "@/components/darb/empty-state";
 import { Panel } from "@/components/darb/panel";
+import { PdfPages } from "@/components/darb/pdf-page";
 import { fileIconFor } from "@/components/darb/upload-invoice";
 import { Button } from "@/components/ui/button";
 import type { StoredFile } from "@/lib/domain/types";
@@ -126,9 +127,21 @@ export function InvoicePreview({ file, title }: { file?: StoredFile; title: stri
           </p>
         </div>
         {url && load.state === "ok" ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline hover:underline-offset-4">
-            {t.billDetail.preview.openFile}
-            <ExternalLink className="size-3.5 rtl:-scale-x-100" aria-hidden />
+          <a
+            href={url}
+            {...(file?.mime.startsWith("image/") ? { target: "_blank", rel: "noopener noreferrer" } : { download: file?.name })}
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline hover:underline-offset-4">
+            {file?.mime.startsWith("image/") ? (
+              <>
+                {t.billDetail.preview.openFile}
+                <ExternalLink className="size-3.5 rtl:-scale-x-100" aria-hidden />
+              </>
+            ) : (
+              <>
+                {t.billDetail.preview.download}
+                <Download className="size-3.5" aria-hidden />
+              </>
+            )}
           </a>
         ) : null}
       </div>
@@ -144,7 +157,8 @@ export function InvoicePreview({ file, title }: { file?: StoredFile; title: stri
           className="py-24"
         />
       ) : file.mime === "application/pdf" ? (
-        <iframe src={url} title={title} className="h-[760px] w-full bg-background-secondary" />
+        // Untrusted upload: drawn by pdf.js on canvas (all pages, width-fit), never in an iframe.
+        <PdfPages url={url!} name={file.name} className="max-h-[760px] overflow-y-auto bg-background-secondary p-4" />
       ) : file.mime === "application/xml" ? (
         <div>
           <p className="flex items-center gap-1.5 border-b px-5 py-2 text-xs text-muted-foreground">

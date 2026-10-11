@@ -76,7 +76,7 @@ export interface NewSupplierView {
     id: string;
     invoiceNumber: string;
     extraction: "e_invoice" | "ocr" | "manual";
-    prefill: { nameEn?: string; nameAr?: string; vatNumber?: string; crNumber?: string; iban?: string };
+    prefill: { nameEn?: string; nameAr?: string; vatNumber?: string; crNumber?: string; iban?: string; noticeEmail?: string };
   };
 }
 
@@ -85,7 +85,8 @@ export async function loadNewSupplierView(fromBillId?: string): Promise<NewSuppl
   const store = await readStore();
   const bill = store.bills.find((b) => b.id === fromBillId);
   if (!bill || bill.kind !== "supplier") return {};
-  const s = bill.suggestedSupplier;
+  // supplierEmail (the XML contact email) is optional: older bills and stores don't have it.
+  const s = bill.suggestedSupplier as (NonNullable<typeof bill.suggestedSupplier> & { supplierEmail?: string }) | undefined;
   return {
     fromBill: {
       id: bill.id,
@@ -97,6 +98,7 @@ export async function loadNewSupplierView(fromBillId?: string): Promise<NewSuppl
         vatNumber: s?.supplierVat ?? bill.supplierVat,
         crNumber: s?.supplierCr ?? bill.supplierCr,
         iban: s?.supplierIban,
+        noticeEmail: typeof s?.supplierEmail === "string" && s.supplierEmail.trim() ? s.supplierEmail.trim() : undefined,
       },
     },
   };
@@ -109,6 +111,7 @@ export interface BankChangeRow {
   oldIban: string;
   newIban: string;
   newBank: string;
+  newBankAr: string;
   status: BankChangeRequest["status"];
   requestedBy?: Person;
   requestedAt: string;
@@ -158,6 +161,7 @@ function changeRow(store: StoreData, c: BankChangeRequest): BankChangeRow {
     oldIban: formatIban(c.oldIban),
     newIban: formatIban(c.newIban),
     newBank: c.newBankName || saudiBankFromIban(c.newIban)?.name || "",
+    newBankAr: saudiBankFromIban(c.newIban)?.nameAr || c.newBankName || "",
     status: c.status,
     requestedBy: userName(store, c.requestedBy),
     requestedAt: c.requestedAt,

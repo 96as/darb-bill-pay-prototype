@@ -18,50 +18,70 @@ import { ACTIVITY_FILTERS } from "../filters";
 const MONEY_KEYS = new Set(["total", "subtotal", "vat", "amount", "balance"]);
 const STATUS_KEYS = new Set(["status"]);
 
-function summarize(value: string): string | undefined {
-  if (!/^[[{]/.test(value)) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed.length <= 4 ? parsed.map(String).join(", ") : `${parsed.length} items`;
-    if (parsed && typeof parsed === "object" && "result" in parsed) return String((parsed as { result: unknown }).result);
-    return "…";
-  } catch {
-    return undefined;
-  }
-}
-
-function useValue(people: ActivityView["people"]) {
+function useValue(names: ActivityView["names"]) {
   const { t, lang } = useI18n();
-  return (key: string, value: string | undefined): string => {
-    if (value === undefined) return "—";
-    const person = people[value];
-    if (person) return lang === "ar" ? person.nameAr : person.name;
-    const summary = summarize(value);
-    if (summary !== undefined) return summary;
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return formatDateTime(value, lang);
+  const fieldLabel = (k: string) => (t.billDetail.fields as Record<string, string>)[k];
+  const named = (v: string) => {
+    const n = names[v];
+    return n ? (lang === "ar" ? n.nameAr : n.name) : undefined;
+  };
+  const one = (key: string, value: string): string => {
+    const name = named(value);
+    if (name) return name;
     if (MONEY_KEYS.has(key) && /^-?\d+$/.test(value)) return formatSAR(Number(value), lang);
     if (/iban/i.test(key) && /^SA\d{22}$/.test(value)) return maskIban(value);
-    if (STATUS_KEYS.has(key) && value in t.status) return t.status[value as DisplayStatus];
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return formatDateTime(value, lang);
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return formatDate(value, lang);
-    return value.length > 60 ? `${value.slice(0, 57)}…` : value;
+    if (STATUS_KEYS.has(key)) {
+      if (value in t.status) return t.status[value as DisplayStatus];
+      const pay = t.payments.paymentStatus as Record<string, string>;
+      const run = t.payments.runStatus as Record<string, string>;
+      if (pay[value]) return pay[value];
+      if (run[value]) return run[value];
+    }
+    if (key === "source" && value in t.bills.sources) return t.bills.sources[value as keyof typeof t.bills.sources];
+    if (key === "rail" && value in t.billDetail.rails) return t.billDetail.rails[value as keyof typeof t.billDetail.rails];
+    if (key === "extraction" && t.activity.extractionValues[value]) return t.activity.extractionValues[value];
+    if (key === "result" && value in t.billDetail.nameCheck) return t.billDetail.nameCheck[value as keyof typeof t.billDetail.nameCheck];
+    if (fieldLabel(value)) return fieldLabel(value);
+    return value;
+  };
+  return (key: string, value: string | undefined): string => {
+    if (value === undefined) return "—";
+    if (/^[[{]/.test(value)) {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 0) return "—";
+          return parsed.length <= 4 ? parsed.map((x) => one(key, String(x))).join(lang === "ar" ? "، " : ", ") : String(parsed.length);
+        }
+        if (parsed && typeof parsed === "object" && "result" in parsed) return one("result", String((parsed as { result: unknown }).result));
+        return "…";
+      } catch {
+        /* not JSON: fall through */
+      }
+    }
+    const out = one(key, value);
+    return out.length > 60 ? `${out.slice(0, 57)}…` : out;
   };
 }
 
-function Changes({ changes, people }: { changes: AuditChange[]; people: ActivityView["people"] }) {
-  const show = useValue(people);
+function Changes({ changes, names }: { changes: AuditChange[]; names: ActivityView["names"] }) {
+  const { t } = useI18n();
+  const show = useValue(names);
   if (changes.length === 0) return <span className="text-muted-foreground">—</span>;
   return (
     <ul className="space-y-0.5 text-xs">
       {changes.slice(0, 4).map((c) => (
         <li key={c.key} className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="text-muted-foreground">{c.key}</span>
+          <span className="text-muted-foreground">{t.activity.keys[c.key] ?? c.key}</span>
           {c.before !== undefined ? (
             <>
-              <span dir="ltr" className="text-muted-foreground line-through decoration-muted-foreground/40">{show(c.key, c.before)}</span>
+              <span dir="auto" className="text-muted-foreground line-through decoration-muted-foreground/40">{show(c.key, c.before)}</span>
               <span aria-hidden className="text-muted-foreground rtl:-scale-x-100">→</span>
             </>
           ) : null}
-          <span dir="ltr" className="font-medium">{show(c.key, c.after)}</span>
+          <span dir="auto" className="font-medium">{show(c.key, c.after)}</span>
         </li>
       ))}
       {changes.length > 4 ? <li className="text-muted-foreground">+{changes.length - 4}</li> : null}
@@ -131,14 +151,16 @@ export function ActivityLog({ view }: { view: ActivityView }) {
                   <div className="text-xs text-muted-foreground">{t.activity.entities[row.entity.type]}</div>
                   {row.href ? (
                     <Link href={row.href} className="block truncate text-sm text-primary hover:underline" dir="auto">
-                      {row.entityLabel}
+                      {(lang === "ar" && row.entityLabelAr) || row.entityLabel}
                     </Link>
                   ) : (
-                    <span className="block truncate text-sm" dir="auto">{row.entityLabel ?? row.entity.id}</span>
+                    <span className="block truncate text-sm" dir="auto">
+                      {(lang === "ar" ? view.names[row.entity.id]?.nameAr : view.names[row.entity.id]?.name) ?? row.entityLabel ?? row.entity.id}
+                    </span>
                   )}
                 </TableCell>
                 <TableCell className={cn(cell, "whitespace-normal")}>
-                  <Changes changes={row.changes} people={view.people} />
+                  <Changes changes={row.changes} names={view.names} />
                 </TableCell>
               </TableRow>
             ))}

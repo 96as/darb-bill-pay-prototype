@@ -6,7 +6,7 @@ import { Amount } from "@/components/darb/amount";
 import { useApiAction } from "@/components/darb/payment-actions";
 import { RunStatusBadge } from "@/components/darb/payment-badges";
 import { formatDayDate, formatInstant, permissionMessage } from "@/components/darb/payment-format";
-import { runApprovalHint } from "@/components/darb/payment-rules";
+import { rejectHint, runApprovalHint } from "@/components/darb/payment-rules";
 import { formatSAR } from "@/lib/domain/money";
 import { fmt, plural } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
@@ -105,6 +105,7 @@ export function MobileRunApproval({ view }: { view: RunDetailView }) {
           approveLabel={plural(lang, m.approveN, active.length, { amount: formatSAR(view.total, lang) })}
           declineTitle={m.declineRunTitle}
           disabled={!hint?.ok}
+          declineDisabled={!(hint && rejectHint(hint).ok)}
           note={note}
           busy={busy !== null}
           onApprove={() => call("approve", `${path}/approve`, {}, { success: m.approvedToast })}

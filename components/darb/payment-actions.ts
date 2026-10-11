@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useT } from "@/lib/i18n/client";
+import { useI18n } from "@/lib/i18n/client";
+import { errorMessage } from "@/lib/i18n/errors";
 
 /** JSON error from app/api: `{ error: { code, message } }`. */
 export class ApiError extends Error {
@@ -42,18 +43,19 @@ export async function postJSON<T = unknown>(url: string, body?: unknown): Promis
  */
 export function useApiAction() {
   const router = useRouter();
-  const t = useT();
+  const { t, lang } = useI18n();
   const [busy, setBusy] = useState<string | null>(null);
 
   const errorText = useCallback(
     (err: unknown) => {
       if (err instanceof ApiError) {
-        if (err.message) return err.message;
-        if (err.status === 404 || err.status === 405) return t.payments.errors.notAvailable;
+        // A route that doesn't exist answers 404/405 without a JSON error.
+        if (!err.message && (err.status === 404 || err.status === 405)) return t.payments.errors.notAvailable;
+        return errorMessage(err.code, err.message || t.payments.errors.generic, lang);
       }
       return t.payments.errors.generic;
     },
-    [t],
+    [t, lang],
   );
 
   const run = useCallback(

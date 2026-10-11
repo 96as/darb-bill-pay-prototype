@@ -17,6 +17,7 @@ export function ApproveBar({
   approveLabel,
   declineTitle,
   disabled,
+  declineDisabled = disabled,
   note,
   busy,
   onApprove,
@@ -25,6 +26,8 @@ export function ApproveBar({
   approveLabel: string;
   declineTitle: string;
   disabled: boolean;
+  /** Decline is gated separately (role and maker-checker only); defaults to `disabled`. */
+  declineDisabled?: boolean;
   note?: string | null;
   busy: boolean;
   onApprove: () => void;
@@ -43,7 +46,7 @@ export function ApproveBar({
           </p>
         ) : null}
         <div className="flex gap-2">
-          <Button variant="outline" size="lg" className="h-11 px-3.5" disabled={disabled || busy} onClick={() => setConfirm(true)}>
+          <Button variant="outline" size="lg" className="h-11 px-3.5" disabled={declineDisabled || busy} onClick={() => setConfirm(true)}>
             {m.decline}
           </Button>
           <Button size="lg" className="h-11 min-w-0 flex-1 px-2" disabled={disabled || busy} onClick={onApprove}>

@@ -1,4 +1,6 @@
 // Client-side calls to the prototype API (app/api). Errors come back as {error:{code,message}}.
+import type { Lang } from "@/lib/i18n/config";
+import { errorMessage as translateError } from "@/lib/i18n/errors";
 
 export class ApiError extends Error {
   constructor(
@@ -48,8 +50,12 @@ export const api = {
   upload: <T = unknown>(path: string, form: FormData) => send<T>("POST", path, form),
 };
 
-export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+/**
+ * Toast text for a failed call, in the UI language: known API error codes are translated by
+ * lib/i18n/errors.ts; anything else falls back to the server's message.
+ */
+export function errorMessage(error: unknown, lang: Lang = "en"): string {
+  if (error instanceof ApiError) return translateError(error.code, error.message, lang);
   if (error instanceof Error) return error.message;
-  return "Something went wrong";
+  return translateError("internal", "Something went wrong", lang);
 }

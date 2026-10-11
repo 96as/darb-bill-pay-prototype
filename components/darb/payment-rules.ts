@@ -90,4 +90,26 @@ export function billApprovalHint(userId: string, bill: Bill, ctx: ApprovalContex
   });
 }
 
+/** Denials that also block rejecting/declining: the role, the status, and maker-checker. */
+const BLOCKS_REJECT: ReadonlySet<string> = new Set([
+  "no_user",
+  "not_approver",
+  "not_awaiting_approval",
+  "run_not_awaiting_approval",
+  "run_creator_cannot_approve",
+  "run_editor_cannot_approve",
+  "run_submitter_cannot_approve",
+  "creator_cannot_approve",
+  "editor_cannot_approve",
+  "submitter_cannot_approve",
+]);
+
+/**
+ * Reject/Decline is gated like Approve (approver role, not a maker), but a supplier problem
+ * (paused IBAN, first-payment rule, name check) never stops an approver from sending it back.
+ */
+export function rejectHint(approveHint: RuleResult): RuleResult {
+  return approveHint.ok || !BLOCKS_REJECT.has(approveHint.code) ? { ok: true } : approveHint;
+}
+
 export { supplierPaymentGate };
