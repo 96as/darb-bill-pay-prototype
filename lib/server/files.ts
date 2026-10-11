@@ -11,15 +11,33 @@ export interface FileStore {
 }
 
 export const PROJECT_ROOT = process.cwd();
+/** Logical prefix of uploaded files in StoredFile.path ("data/files/f_1.pdf"), whatever the data directory. */
 export const UPLOAD_DIR = "data/files";
-const READABLE_ROOTS = [UPLOAD_DIR, "fixtures"];
 
-/** Resolves a stored relative path, refusing anything outside data/files/ and fixtures/ (no traversal). */
+/**
+ * Where store.json and uploads live: <project>/data by default; DARB_DATA_DIR overrides it (tests use a temp dir).
+ * Read on every call so a test can set it after import.
+ */
+export function dataDir(): string {
+  const env = process.env.DARB_DATA_DIR;
+  return env ? path.resolve(PROJECT_ROOT, env) : path.join(PROJECT_ROOT, "data");
+}
+
+/**
+ * Resolves a stored path: "data/files/…" under the data directory, "fixtures/…" under the project.
+ * Anything else, or anything escaping those folders (traversal), is refused.
+ */
 export function resolveSafe(relPath: string): string {
-  const abs = path.resolve(PROJECT_ROOT, relPath);
-  const allowed = READABLE_ROOTS.some((root) => abs.startsWith(path.resolve(PROJECT_ROOT, root) + path.sep));
-  if (!allowed) throw new ServiceError("forbidden_path", "File path is outside the file store", 403);
-  return abs;
+  const roots = [
+    { prefix: `${UPLOAD_DIR}/`, base: path.join(dataDir(), "files") },
+    { prefix: "fixtures/", base: path.join(PROJECT_ROOT, "fixtures") },
+  ];
+  for (const { prefix, base } of roots) {
+    if (!relPath.startsWith(prefix)) continue;
+    const abs = path.resolve(base, relPath.slice(prefix.length));
+    if (abs.startsWith(base + path.sep)) return abs;
+  }
+  throw new ServiceError("forbidden_path", "File path is outside the file store", 403);
 }
 
 const safeName = (id: string, ext: string) => {
@@ -31,7 +49,7 @@ const safeName = (id: string, ext: string) => {
 export const diskFiles: FileStore = {
   async save(id, ext, bytes) {
     const rel = `${UPLOAD_DIR}/${safeName(id, ext)}`;
-    await mkdir(path.resolve(PROJECT_ROOT, UPLOAD_DIR), { recursive: true });
+    await mkdir(path.join(dataDir(), "files"), { recursive: true });
     await writeFile(resolveSafe(rel), bytes);
     return rel;
   },

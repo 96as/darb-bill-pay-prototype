@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:utc": "TZ=UTC vitest run",
+    "test:demo": "vitest run tests/demo-walkthrough.test.ts",
     "test:watch": "vitest",
     "fixtures": "tsx scripts/make-fixtures.ts"
   },

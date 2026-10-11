@@ -667,6 +667,7 @@ export function getBillDetail(ctx: Ctx, id: string): BillDetail {
     audit: auditFor(ctx, "bill", bill.id),
     checks: {
       submit: tryRule(() => {
+        if (bill.runId) throw conflict("in_run", "This bill is in a payment run; submit the run instead");
         if (bill.status !== "draft") throw conflict("not_draft", "Only a draft can be submitted");
         assertSubmittable(ctx, bill, bill.payDate && bill.payDate >= today(ctx) ? bill.payDate : today(ctx), bill.fundingAccountId);
       }),
@@ -693,8 +694,12 @@ function tryRule(fn: () => void): RuleResult {
 
 export interface BillsSummary {
   today: ISODate;
-  accounts: (Pick<FundingAccount, "id" | "kind" | "name" | "nameAr" | "balance"> & { scheduled: Halalas; available: Halalas })[];
-  totals: { balance: Halalas; scheduled: Halalas; available: Halalas };
+  /**
+   * scheduled = approved payments not yet sent (scheduled or held); available = balance − scheduled (BP-18).
+   * pendingApproval = bills submitted for approval from this account, not yet approved (shown separately).
+   */
+  accounts: (Pick<FundingAccount, "id" | "kind" | "name" | "nameAr" | "balance"> & { scheduled: Halalas; available: Halalas; pendingApproval: Halalas })[];
+  totals: { balance: Halalas; scheduled: Halalas; available: Halalas; pendingApproval: Halalas };
   owedBySupplier: {
     key: string;
     kind: Bill["kind"];
@@ -715,9 +720,11 @@ export interface BillsSummary {
 export function billsSummary(ctx: Ctx): BillsSummary {
   const day = today(ctx);
   const pending = ctx.store.payments.filter((p) => p.status === "scheduled" || p.status === "held");
+  const awaiting = ctx.store.bills.filter((b) => b.status === "awaiting_approval");
   const accounts = ctx.store.accounts.map((a) => {
     const scheduled = pending.filter((p) => p.fundingAccountId === a.id).reduce((s, p) => s + p.amount, 0);
-    return { id: a.id, kind: a.kind, name: a.name, nameAr: a.nameAr, balance: a.balance, scheduled, available: a.balance - scheduled };
+    const pendingApproval = awaiting.filter((b) => b.fundingAccountId === a.id).reduce((s, b) => s + b.total, 0);
+    return { id: a.id, kind: a.kind, name: a.name, nameAr: a.nameAr, balance: a.balance, scheduled, available: a.balance - scheduled, pendingApproval };
   });
   const counts = { draft: 0, awaiting_approval: 0, scheduled: 0, paid: 0, failed: 0, cancelled: 0, overdue: 0 } as Record<DisplayStatus, number>;
   const groups = new Map<string, BillsSummary["owedBySupplier"][number]>();
@@ -745,11 +752,11 @@ export function billsSummary(ctx: Ctx): BillsSummary {
     groups.set(key, group);
   }
   const owedBySupplier = [...groups.values()].sort((a, b) => b.total - a.total);
-  const sum = (k: "balance" | "scheduled" | "available") => accounts.reduce((s, a) => s + a[k], 0);
+  const sum = (k: "balance" | "scheduled" | "available" | "pendingApproval") => accounts.reduce((s, a) => s + a[k], 0);
   return {
     today: day,
     accounts,
-    totals: { balance: sum("balance"), scheduled: sum("scheduled"), available: sum("available") },
+    totals: { balance: sum("balance"), scheduled: sum("scheduled"), available: sum("available"), pendingApproval: sum("pendingApproval") },
     owedBySupplier,
     owedTotal: owedBySupplier.reduce((s, g) => s + g.total, 0),
     counts,

@@ -1,7 +1,7 @@
 // Runs and the scheduler (BP-08, BP-10, BP-17, BP-18, PL-04).
 import { describe, expect, it } from "vitest";
 import { approveRun, createRun, getRun, rejectRun, submitRun } from "./runs";
-import { approveBill, cancelBill, createManualBill, submitBill, updateBill, billsSummary } from "./bills";
+import { approveBill, cancelBill, createManualBill, submitBill, updateBill, billsSummary, getBillDetail } from "./bills";
 import { addSupplier } from "./suppliers";
 import { runScheduler } from "./scheduler";
 import { cancelPayment, paymentConfirmation, renderConfirmationHtml } from "./payments";
@@ -61,6 +61,15 @@ describe("approving a run", () => {
     expect(balanceOf(ctx)).toBe(18_000_000 - 1_250_000); // the returned 5,000 is not lost
     expect(ctx.store.alerts.find((a) => a.kind === "payment_returned")).toMatchObject({ to: NOURA });
     expect(ctx.store.notices.some((n) => n.billId === liftBill.id)).toBe(false);
+  });
+});
+
+describe("bill detail checks", () => {
+  it("a draft bill inside a draft run cannot be submitted on its own", async () => {
+    const ctx = setup();
+    const { einvoice } = await demoRun(ctx, { submit: false });
+    expect(getBillDetail(ctx, einvoice.id).checks.submit).toMatchObject({ ok: false, code: "in_run" });
+    await expectCode(() => submitBill(ctx, einvoice.id, NOURA, { payDate: "2026-10-15" }), "in_run");
   });
 });
 
