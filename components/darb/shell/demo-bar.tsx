@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, CircleQuestionMark } from "lucide-react";
+import { CircleQuestionMark } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
+import { AlertsBell } from "./alerts-bell";
 import { DemoChip } from "./demo-chip";
 import { DemoClock } from "./demo-clock";
 import { useDemoState } from "./demo-state";
@@ -11,7 +12,7 @@ import { ResetDemoButton } from "./reset-demo-button";
 import { UserSwitcher } from "./user-switcher";
 
 /** Inert round icon button (Darb header style). Not part of the prototype. */
-function InertIconButton({ icon: Icon, label, className }: { icon: typeof Bell; label: string; className?: string }) {
+function InertIconButton({ icon: Icon, label, className }: { icon: typeof CircleQuestionMark; label: string; className?: string }) {
   const { t } = useI18n();
   return (
     <span
@@ -47,7 +48,7 @@ export function DemoBar({ className }: { className?: string }) {
       </div>
       <span aria-hidden className="mx-1 hidden h-6 w-px bg-border xl:block" />
       <div className="flex items-center gap-2">
-        <InertIconButton icon={Bell} label={t.shell.notifications} />
+        <AlertsBell />
         <InertIconButton icon={CircleQuestionMark} label={t.shell.help} className="hidden xl:flex" />
         <UserSwitcher users={demo.users} actingUserId={demo.actingUserId} onChange={demo.setActingUser} />
       </div>

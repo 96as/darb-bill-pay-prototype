@@ -59,14 +59,14 @@ export function ShellTitle({ className }: { className?: string }) {
   if (crumbs.length === 0) return null;
   return (
     <nav aria-label="Breadcrumb" className={cn("min-w-0", className)}>
-      <ol className="flex items-center gap-1.5 text-sm">
+      <ol className="flex min-w-0 items-center gap-1.5 text-sm">
         {crumbs.map((crumb, i) => {
           const last = i === crumbs.length - 1;
           return (
-            <li key={`${crumb.label}-${i}`} className="flex min-w-0 items-center gap-1.5">
+            <li key={`${crumb.label}-${i}`} className={cn("flex items-center gap-1.5", last ? "min-w-0" : "shrink-0")}>
               {i > 0 ? <ChevronRight className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden /> : null}
               {last || !crumb.href ? (
-                <span aria-current={last ? "page" : undefined} className="truncate font-medium">
+                <span aria-current={last ? "page" : undefined} className="max-w-64 truncate font-medium">
                   {crumb.label}
                 </span>
               ) : (

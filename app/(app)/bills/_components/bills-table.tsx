@@ -1,6 +1,7 @@
 "use client";
 
-import { FileText, Landmark, Mail, PenLine, ReceiptText, SearchX, Upload, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { CopyX, FileText, Landmark, Mail, PenLine, ReceiptText, SearchX, Upload, type LucideIcon } from "lucide-react";
 import { Amount } from "@/components/darb/amount";
 import { EmptyState } from "@/components/darb/empty-state";
 import { Panel, PanelHeader } from "@/components/darb/panel";
@@ -43,11 +44,24 @@ function SourceLabel({ row, iconOnly }: { row: BillRow; iconOnly?: boolean }) {
 /** "From e-invoice" for ZATCA XML bills, "Check fields" for OCR bills with fields to review. */
 function SourceChips({ row, className }: { row: BillRow; className?: string }) {
   const { t } = useI18n();
-  if (row.extraction === "e_invoice") return <SourceChip kind="e_invoice" className={className} />;
-  if (row.extraction === "ocr" && row.needsReviewCount > 0) {
-    return <SourceChip kind="check" label={t.bills.checkFields} className={className} />;
-  }
-  return null;
+  const chip =
+    row.extraction === "e_invoice" ? (
+      <SourceChip kind="e_invoice" className="relative z-10" />
+    ) : row.extraction === "ocr" && row.needsReviewCount > 0 ? (
+      <SourceChip kind="check" label={t.bills.checkFields} className="relative z-10" />
+    ) : null;
+  if (!chip && !row.duplicate) return null;
+  return (
+    <span className={cn("inline-flex flex-wrap items-center gap-1", className)}>
+      {chip}
+      {row.duplicate ? (
+        <span className="inline-flex h-5 items-center gap-1 rounded-full bg-error px-2 text-[11px] font-medium whitespace-nowrap text-error-foreground">
+          <CopyX className="size-3" aria-hidden />
+          {t.bills.duplicateChip}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 /** Bills table (BP-11, BP-12): supplier, invoice no., source, due date, amount, status. */
@@ -85,9 +99,15 @@ export function BillsTableCard({ view }: { view: Pick<BillsView, "rows" | "total
           </TableHeader>
           <TableBody>
             {view.rows.map((row) => (
-              <TableRow key={row.id} data-bill-id={row.id}>
+              <TableRow key={row.id} data-bill-id={row.id} className="relative cursor-pointer">
                 <TableCell className={cn(cell, "max-w-0 min-w-44")}>
-                  <SupplierName nameEn={row.supplierName} nameAr={row.supplierNameAr} />
+                  {/* The link covers the whole row (after:inset-0); chips sit above it for their tooltips. */}
+                  <Link
+                    href={`/bills/${row.id}`}
+                    className="block outline-none after:absolute after:inset-0 focus-visible:after:ring-3 focus-visible:after:ring-ring/50 focus-visible:after:ring-inset"
+                  >
+                    <SupplierName nameEn={row.supplierName} nameAr={row.supplierNameAr} />
+                  </Link>
                 </TableCell>
                 <TableCell className={cell}>
                   <div className="flex items-center gap-1.5 tabular-nums">

@@ -1,27 +1,24 @@
 "use client";
 
-import { Plus, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { UploadInvoiceDialog } from "@/components/darb/upload-invoice";
+import { buttonVariants } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/client";
+import { cn } from "@/lib/utils";
 
-// Not wired yet: upload (POST /bills) and runs (POST /payment-runs) come in the next build steps.
-
+/** Upload dialog: POST /api/bills, then opens the new bill. */
 export function UploadInvoiceButton() {
-  const t = useT();
-  return (
-    <Button variant="pill" size="lg" className="px-4">
-      <Upload aria-hidden />
-      {t.bills.uploadInvoice}
-    </Button>
-  );
+  return <UploadInvoiceDialog />;
 }
 
+/** Payment runs are built by the runs screen (/bills/runs/new). */
 export function NewPaymentRunButton({ className }: { className?: string }) {
   const t = useT();
   return (
-    <Button size="lg" className={className}>
+    <Link href="/bills/runs/new" className={cn(buttonVariants({ size: "lg" }), className)}>
       <Plus aria-hidden />
       {t.bills.newPaymentRun}
-    </Button>
+    </Link>
   );
 }

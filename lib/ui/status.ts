@@ -1,13 +1,10 @@
-// TEMPORARY: derive the status shown in the UI. Swap for the domain helper
-// (lib/domain statuses) when it lands. Rule from BUILD-NOTES decision 10:
-// a bill that is not paid or cancelled and whose due date is before today (Riyadh) shows Overdue.
-import type { Bill, DisplayStatus, ISODate } from "@/lib/domain/types";
+// Display status comes from the domain rule (lib/domain/status.ts, BUILD-NOTES 10).
+import { displayStatus } from "@/lib/domain/status";
+import type { DisplayStatus } from "@/lib/domain/types";
 
-export function toDisplayStatus(bill: Pick<Bill, "status" | "dueDate">, today: ISODate): DisplayStatus {
-  if (bill.status === "paid" || bill.status === "cancelled") return bill.status;
-  if (bill.dueDate && bill.dueDate < today) return "overdue";
-  return bill.status;
-}
+/** @deprecated name kept for existing imports; same as lib/domain displayStatus. */
+export const toDisplayStatus = displayStatus;
+export { displayStatus };
 
 export const DISPLAY_STATUSES: DisplayStatus[] = [
   "draft",

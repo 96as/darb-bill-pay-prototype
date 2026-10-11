@@ -21,7 +21,9 @@ export function BillsStats({ balances }: { balances: BillsView["balances"] }) {
         icon={Wallet}
         label={t.bills.stats.mainBalance}
         value={<Amount value={balances.main} {...bigAmount} />}
-        sublabel={fmt(t.bills.stats.mainBalanceSub, { amount: formatSAR(balances.subwallets, lang) })}
+        sublabel={balances.subwallets
+          .map((w) => fmt(t.bills.stats.subwallet, { name: lang === "ar" ? w.nameAr : w.name, amount: formatSAR(w.available, lang) }))
+          .join(" · ")}
         action={<NewPaymentRunButton className="px-4" />}
       />
       <StatCard

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Cairo } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { dirOf } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/client";
@@ -28,6 +29,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className="antialiased">
         <I18nProvider lang={lang}>
           <TooltipProvider delay={300}>{children}</TooltipProvider>
+          {/* Light theme only (Darb app); API errors and confirmations show here. */}
+          <Toaster theme="light" position="top-center" dir={dirOf(lang)} />
         </I18nProvider>
       </body>
     </html>

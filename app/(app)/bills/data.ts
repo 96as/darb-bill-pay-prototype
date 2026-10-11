@@ -1,6 +1,10 @@
+import { canApproveRun } from "@/lib/domain/permissions";
 import type { Bill, DisplayStatus, Halalas, ISODate, StoreData } from "@/lib/domain/types";
 import { riyadhDate } from "@/lib/ui/format";
-import { isDisplayStatus, toDisplayStatus } from "@/lib/ui/status";
+import { isDisplayStatus, displayStatus as toDisplayStatus } from "@/lib/ui/status";
+import { actingUser, billApprovalGate, supplierHasPaid, toGate, type Gate } from "@/lib/ui/store-helpers";
+import { makeCtx } from "@/lib/server/context";
+import { billsSummary } from "@/lib/server/services";
 import { readStore } from "../store";
 
 // ---------- View model for /bills (serialisable: passed to client components) ----------
@@ -21,6 +25,8 @@ export interface BillRow {
   source: Bill["source"];
   extraction: Bill["extraction"];
   needsReviewCount: number;
+  /** Flagged as a possible duplicate (BP-04) and not resolved yet. */
+  duplicate: boolean;
   dueDate?: ISODate;
   total: Halalas;
   displayStatus: DisplayStatus;
@@ -39,15 +45,21 @@ export interface OwedSupplier {
 
 export interface ApprovalItem {
   id: string;
+  /** A single bill, or a payment run (approved on the runs screen). */
+  type: "bill" | "run";
   kind: Bill["kind"];
+  href: string;
   name: string;
   nameAr?: string;
-  invoiceNumber: string;
+  /** Invoice / SADAD bill number for bills; run name for runs. */
+  reference: string;
   dueDate?: ISODate;
+  payDate?: ISODate;
+  billCount?: number;
   total: Halalas;
   submittedBy?: { name: string; nameAr: string };
-  /** Users who created, edited or submitted it; they cannot approve alone (maker-checker). */
-  makers: string[];
+  /** Whether the acting user may approve (lib/domain/permissions); the API re-checks. */
+  gate: Gate;
 }
 
 export interface BillsView {
@@ -55,11 +67,12 @@ export interface BillsView {
   today: ISODate;
   balances: {
     main: Halalas;
-    subwallets: Halalas;
+    /** Scheduled (and held) payments from every account. */
     scheduled: Halalas;
     scheduledCount: number;
     /** Main balance minus scheduled payments from it (BP-18). */
     available: Halalas;
+    subwallets: { id: string; name: string; nameAr: string; balance: Halalas; available: Halalas }[];
   };
   filters: BillsFilters;
   /** Bills after filters, sorted for the table. */
@@ -90,12 +103,10 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
   const store: StoreData = await readStore();
   const today = riyadhDate(store.clock.now);
 
-  const main = store.accounts.find((a) => a.kind === "main")?.balance ?? 0;
-  const subwallets = store.accounts.filter((a) => a.kind === "subwallet").reduce((sum, a) => sum + a.balance, 0);
-  const pending = store.payments.filter(
-    (p) => (p.status === "scheduled" || p.status === "held") && p.fundingAccountId === "main",
-  );
-  const scheduled = pending.reduce((sum, p) => sum + p.amount, 0);
+  // BP-18 balances come from the service layer (same numbers as GET /api/summary).
+  const summary = billsSummary(makeCtx(store));
+  const mainAccount = summary.accounts.find((a) => a.kind === "main");
+  const scheduledCount = store.payments.filter((p) => p.status === "scheduled" || p.status === "held").length;
 
   const allRows: BillRow[] = store.bills.map((bill) => ({
     id: bill.id,
@@ -107,6 +118,7 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
     source: bill.source,
     extraction: bill.extraction,
     needsReviewCount: bill.needsReview.length,
+    duplicate: Boolean(bill.duplicateOf) && bill.status !== "cancelled",
     dueDate: bill.dueDate,
     total: bill.total,
     displayStatus: toDisplayStatus(bill, today),
@@ -143,27 +155,64 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
   const suppliers = [...groups.values()].sort((a, b) => b.total - a.total);
 
   const userById = new Map(store.users.map((u) => [u.id, u]));
-  const approvals: ApprovalItem[] = store.bills
+  const submitterOf = (id?: string) => {
+    const u = id ? userById.get(id) : undefined;
+    return u ? { name: u.name, nameAr: u.nameAr } : undefined;
+  };
+  const billApprovals: ApprovalItem[] = store.bills
     .filter((bill) => bill.status === "awaiting_approval" && !bill.runId)
-    .map((bill) => {
-      const submitter = bill.submittedBy ? userById.get(bill.submittedBy) : undefined;
+    .map((bill) => ({
+      id: bill.id,
+      type: "bill",
+      kind: bill.kind,
+      href: `/bills/${bill.id}`,
+      name: bill.sadad?.billerName ?? bill.supplierName,
+      nameAr: bill.sadad?.billerNameAr ?? bill.supplierNameAr,
+      reference: bill.sadad?.billNumber ?? bill.invoiceNumber,
+      dueDate: bill.dueDate,
+      payDate: bill.payDate,
+      total: bill.total,
+      submittedBy: submitterOf(bill.submittedBy),
+      gate: billApprovalGate(store, bill),
+    }));
+  const suppliersById = new Map(store.suppliers.map((s) => [s.id, s]));
+  const paidSupplierIds = store.suppliers.filter((s) => supplierHasPaid(store, s)).map((s) => s.id);
+  const runApprovals: ApprovalItem[] = store.runs
+    .filter((run) => run.status === "awaiting_approval")
+    .map((run) => {
+      const bills = store.bills.filter((b) => run.billIds.includes(b.id) && b.status !== "cancelled");
       return {
-        id: bill.id,
-        kind: bill.kind,
-        name: bill.sadad?.billerName ?? bill.supplierName,
-        nameAr: bill.sadad?.billerNameAr ?? bill.supplierNameAr,
-        invoiceNumber: bill.sadad?.billNumber ?? bill.invoiceNumber,
-        dueDate: bill.dueDate,
-        total: bill.total,
-        submittedBy: submitter ? { name: submitter.name, nameAr: submitter.nameAr } : undefined,
-        makers: unique([bill.createdBy, ...bill.editedBy, bill.submittedBy].filter((id): id is string => !!id)),
+        id: run.id,
+        type: "run",
+        kind: "supplier",
+        href: `/bills/runs/${run.id}`,
+        name: run.name,
+        reference: run.name,
+        payDate: run.payDate,
+        billCount: bills.length,
+        total: bills.reduce((sum, b) => sum + b.total, 0),
+        submittedBy: submitterOf(run.submittedBy),
+        gate: toGate(
+          canApproveRun(actingUser(store), run, store.bills, suppliersById, paidSupplierIds, {
+            makerChecker: store.company.makerChecker,
+          }),
+        ),
       };
     });
+  const approvals = [...runApprovals, ...billApprovals];
 
   return {
     now: store.clock.now,
     today,
-    balances: { main, subwallets, scheduled, scheduledCount: pending.length, available: main - scheduled },
+    balances: {
+      main: mainAccount?.balance ?? 0,
+      scheduled: summary.totals.scheduled,
+      scheduledCount,
+      available: mainAccount?.available ?? 0,
+      subwallets: summary.accounts
+        .filter((a) => a.kind === "subwallet")
+        .map((a) => ({ id: a.id, name: a.name, nameAr: a.nameAr, balance: a.balance, available: a.available })),
+    },
     filters,
     rows,
     totalCount: allRows.length,
@@ -187,6 +236,3 @@ function compareRows(a: BillRow, b: BillRow): number {
   return aOpen ? ad.localeCompare(bd) : bd.localeCompare(ad);
 }
 
-function unique<T>(values: T[]): T[] {
-  return [...new Set(values)];
-}

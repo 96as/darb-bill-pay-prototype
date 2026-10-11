@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Pencil } from "lucide-react";
+import { Check, Clock, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +20,15 @@ import { useI18n } from "@/lib/i18n/client";
 import { formatClock, riyadhDate, riyadhTime, riyadhToInstant } from "@/lib/ui/format";
 import { cn } from "@/lib/utils";
 
-/** Demo clock: "Thu 15 Oct 2026, 4:10 PM Riyadh" with an edit control (dialog). */
+/** Quick picks for the demo script (Riyadh wall-clock times). */
+const PRESETS = [
+  { date: "2026-10-15", time: "16:10", note: "presetStart" },
+  { date: "2026-10-15", time: "14:00", note: "presetBeforeCutoff" },
+  { date: "2026-10-18", time: "09:00", note: "presetSundayOpen" },
+  { date: "2026-10-16", time: "23:00", note: "presetWeekend" },
+] as const;
+
+/** Demo clock: "Thu 15 Oct 2026, 4:10 PM Riyadh" with an edit control (dialog with quick picks). */
 export function DemoClock({
   now,
   onChange,
@@ -39,14 +47,23 @@ export function DemoClock({
     if (next) {
       setDate(riyadhDate(now));
       setTime(riyadhTime(now));
+      setError(null);
     }
     setOpen(next);
   }
 
+  const [error, setError] = useState<string | null>(null);
+
   function save(event: React.FormEvent) {
     event.preventDefault();
     if (!date || !time) return;
-    onChange(riyadhToInstant(date, time));
+    const next = riyadhToInstant(date, time);
+    if (Date.parse(next) < Date.parse(now)) {
+      setError(t.demo.forwardOnly);
+      return;
+    }
+    setError(null);
+    if (next !== now) onChange(next);
     setOpen(false);
   }
 
@@ -78,7 +95,42 @@ export function DemoClock({
             <DialogTitle>{t.shell.clockTitle}</DialogTitle>
             <DialogDescription>{t.shell.clockDescription}</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-1.5">
+            <p className="text-xs font-medium text-muted-foreground">{t.demo.presets}</p>
+            <ul className="grid gap-1">
+              {PRESETS.map((preset) => {
+                const instant = riyadhToInstant(preset.date, preset.time);
+                const current = instant === now;
+                // The demo clock only moves forward (API: clock_backwards); Reset goes back to the start.
+                const past = !current && Date.parse(instant) < Date.parse(now);
+                return (
+                  <li key={instant}>
+                    <button
+                      type="button"
+                      disabled={past}
+                      onClick={() => {
+                        if (!current) onChange(instant);
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-start transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+                        current && "border-primary/40 bg-primary-surface",
+                        past && "cursor-not-allowed opacity-50 hover:bg-transparent",
+                      )}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium tabular-nums">{formatClock(instant, lang)}</span>
+                        <span className="block text-xs text-muted-foreground">{t.demo[preset.note]}</span>
+                      </span>
+                      {current ? <Check className="size-4 text-primary" aria-hidden /> : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+          <p className="text-xs font-medium text-muted-foreground">{t.demo.custom}</p>
+          <div className="-mt-2 grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="demo-clock-date">{t.shell.date}</Label>
               <Input id="demo-clock-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
@@ -90,6 +142,13 @@ export function DemoClock({
               <Input id="demo-clock-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
             </div>
           </div>
+          {error ? (
+            <p role="alert" className="-mt-2 text-xs text-error-foreground">
+              {error}
+            </p>
+          ) : (
+            <p className="-mt-2 text-xs text-muted-foreground">{t.demo.forwardOnly}</p>
+          )}
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>{t.shell.cancel}</DialogClose>
             <Button type="submit">{t.shell.save}</Button>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Halalas } from "@/lib/domain/types";
@@ -21,7 +22,10 @@ export function ApprovalCard({
   onApprove,
   onDecline,
   disabled,
+  pending,
   note,
+  actions,
+  href,
   className,
 }: {
   avatar?: React.ReactNode;
@@ -34,8 +38,14 @@ export function ApprovalCard({
   onDecline?: () => void;
   /** The acting user cannot approve (prepare-only role or maker-checker). */
   disabled?: boolean;
+  /** A request is in flight: both buttons are disabled. */
+  pending?: boolean;
   /** Why it is disabled. */
   note?: React.ReactNode;
+  /** Replaces the Approve/Decline pair (e.g. "Review run" for payment runs). */
+  actions?: React.ReactNode;
+  /** Makes the title a link (e.g. to the bill). */
+  href?: string;
   className?: string;
 }) {
   const t = useT();
@@ -44,7 +54,15 @@ export function ApprovalCard({
       <div className="flex items-start gap-3">
         {avatar}
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-medium">{title}</h3>
+          <h3 className="truncate text-sm font-medium">
+            {href ? (
+              <Link href={href} className="hover:text-primary hover:underline hover:underline-offset-4">
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
+          </h3>
           {subtitle ? <p className="truncate text-xs text-muted-foreground">{subtitle}</p> : null}
         </div>
       </div>
@@ -52,14 +70,16 @@ export function ApprovalCard({
         <Amount value={amount} className="text-lg font-medium" currencyClassName="text-sm font-normal text-muted-foreground" />
         {meta}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Button size="lg" onClick={onApprove} disabled={disabled}>
-          {t.bills.approvals.approve}
-        </Button>
-        <Button size="lg" variant="outline" onClick={onDecline} disabled={disabled}>
-          {t.bills.approvals.decline}
-        </Button>
-      </div>
+      {actions ?? (
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="lg" onClick={onApprove} disabled={disabled || pending}>
+            {t.bills.approvals.approve}
+          </Button>
+          <Button size="lg" variant="outline" onClick={onDecline} disabled={disabled || pending}>
+            {t.bills.approvals.decline}
+          </Button>
+        </div>
+      )}
       {disabled && note ? (
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <Info className="mt-px size-3.5 shrink-0" aria-hidden />
