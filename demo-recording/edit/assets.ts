@@ -44,6 +44,14 @@ export class Assets {
     return shoot(this.page, html, path.join(this.dir, `${name}.png`), { w: 1920, h: 400 }, true);
   }
 
+  /** A small step badge ("Step 1 of 8 · Capture"). */
+  badge(name: string, text: string): Promise<Png> {
+    const html = `<div id="shot" style="display:inline-block;padding:6px">
+      <div style="display:inline-block;padding:12px 26px;border-radius:999px;background:#2563eb;
+        box-shadow:0 4px 16px rgba(0,0,0,0.25);font-family:${FONT};color:#fff;font-size:30px;font-weight:600;white-space:nowrap">${esc(text)}</div></div>`;
+    return shoot(this.page, html, path.join(this.dir, `${name}.png`), { w: 1920, h: 200 }, true);
+  }
+
   /** A plain dark full-frame title card. */
   card(name: string, title: string, kicker?: string): Promise<Png> {
     const html = `<div id="shot" style="width:1920px;height:1080px;background:#0f172a;display:flex;flex-direction:column;
