@@ -47,3 +47,10 @@ next-env.d.ts
 /data/files/
 .DS_Store
 .claude/
+
+# demo recording (working files; the clips, part files, scenes.json, EDIT_PLAN.md and screenshots are kept)
+/demo-recording/.data/
+/demo-recording/.frames/
+/demo-recording/.dry-run/
+/demo-recording/.downloads/
+/demo-recording/edit/.work/
