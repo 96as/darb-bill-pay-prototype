@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AccountingEntry, AuditEvent, InboundEmail, Supplier, SupplierNotice } from "@/lib/domain/types";
-import type { BillDetail, BillQuote, BillRow, BillsSummary, DemoState, IngestResult, ProcessResult, RunView, SchedulerReport } from "@/lib/server/services";
+import type { BillDetail, BillQuote, BillRow, BillsSummary, DemoState, IngestResult, ProcessResult, RunView, SchedulerReport, SupplierChecks } from "@/lib/server/services";
 
 import * as demoReset from "@/app/api/demo/reset/route";
 import * as demoState from "@/app/api/demo/state/route";
@@ -22,6 +22,7 @@ import * as payees from "@/app/api/payees/route";
 import * as payee from "@/app/api/payees/[id]/route";
 import * as bankAccount from "@/app/api/payees/[id]/bank-account/route";
 import * as bankApprove from "@/app/api/payees/[id]/bank-account/approve/route";
+import * as nameCheckConfirm from "@/app/api/payees/[id]/name-check/confirm/route";
 import * as audit from "@/app/api/audit/route";
 import * as alerts from "@/app/api/alerts/route";
 import * as runQuote from "@/app/api/payment-runs/quote/route";
@@ -241,6 +242,47 @@ describe("Step 3 — add the supplier, then change its IBAN (BP-05, BP-06, BP-07
 
     const { body: detail } = await call<{ supplier: Supplier; audit: AuditEvent[] }>(payee.GET, "GET", "/api/payees/s_1", { params: { id: "s_1" } });
     expect(detail.audit.map((e) => e.action)).toEqual(expect.arrayContaining(["supplier.created", "supplier.bank_change_requested", "supplier.bank_change_approved"]));
+    await actAs("u_noura");
+  });
+});
+
+describe("Step 3 (extra) — an IBAN the bank only half-recognises can still be decided (BP-06, BP-07)", () => {
+  const IBAN_UNKNOWN = "SA3380000000000098765432"; // valid checksum, unknown to the mock bank → close match
+  const checksFor = async () => {
+    const { body } = await call<{ checks: SupplierChecks }>(payee.GET, "GET", "/api/payees/s_green_oasis", { params: { id: "s_green_oasis" } });
+    return Object.fromEntries(Object.entries(body.checks).map(([k, v]) => [k, v.ok ? "ok" : v.code]));
+  };
+
+  it("BP-06/BP-07: Faisal confirms the close match, Reem approves; the requester could only withdraw", async () => {
+    const req = await call<{ supplier: Supplier }>(bankAccount.PATCH, "PATCH", "/api/payees/s_green_oasis/bank-account", {
+      params: { id: "s_green_oasis" },
+      json: { iban: IBAN_UNKNOWN },
+    });
+    expect(req.status).toBe(200);
+    expect(req.body.supplier.pendingBankChange).toMatchObject({ newIban: IBAN_UNKNOWN, nameCheck: { result: "close_match" } });
+    expect(await checksFor()).toEqual({ approveChange: "not_approver", rejectChange: "not_approver", withdrawChange: "ok", confirmMatch: "not_approver" });
+
+    await actAs("u_faisal");
+    expect(await checksFor()).toEqual({ approveChange: "name_check_unconfirmed", rejectChange: "ok", withdrawChange: "not_requester", confirmMatch: "ok" });
+    const confirm = await call<{ supplier: Supplier }>(nameCheckConfirm.POST, "POST", "/api/payees/s_green_oasis/name-check/confirm", { params: { id: "s_green_oasis" } });
+    expect(confirm.status).toBe(200);
+    expect(confirm.body.supplier.pendingBankChange?.nameCheck).toMatchObject({ result: "close_match", confirmedBy: "u_faisal" });
+    expect((await checksFor()).approveChange).toBe("ok");
+
+    await actAs("u_reem");
+    const approve = await call<{ supplier: Supplier }>(bankApprove.POST, "POST", "/api/payees/s_green_oasis/bank-account/approve", { params: { id: "s_green_oasis" } });
+    expect(approve.status).toBe(200);
+    expect(approve.body.supplier).toMatchObject({ iban: IBAN_UNKNOWN, bankName: "Al Rajhi Bank" });
+    expect(approve.body.supplier.pendingBankChange).toBeUndefined();
+
+    const { body: log } = await call<{ events: AuditEvent[] }>(audit.GET, "GET", "/api/audit?type=supplier&id=s_green_oasis");
+    expect(log.events.map((e) => [e.action, e.actorId])).toEqual(
+      expect.arrayContaining([
+        ["supplier.bank_change_requested", "u_noura"],
+        ["supplier.name_check_confirmed", "u_faisal"],
+        ["supplier.bank_change_approved", "u_reem"],
+      ]),
+    );
     await actAs("u_noura");
   });
 });

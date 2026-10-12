@@ -42,6 +42,9 @@ interface DemoStateValue extends DemoShellData {
   setClock: (now: ISODateTime) => void;
   resetDemo: () => void;
   setLang: (lang: Lang) => void;
+  /** The user switcher menu is controlled here so "Switch user" hints anywhere can open it. */
+  switcherOpen: boolean;
+  setSwitcherOpen: (open: boolean) => void;
 }
 
 const DemoStateContext = createContext<DemoStateValue | null>(null);
@@ -60,6 +63,7 @@ export function DemoStateProvider({ initial, children }: { initial: DemoShellDat
   const [actingUserId, setActingUserId] = useState(initial.actingUserId);
   const [now, setNow] = useState(initial.now);
   const [pending, setPending] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
 
   // Server data wins whenever it changes (after router.refresh()).
   useEffect(() => setActingUserId(initial.actingUserId), [initial.actingUserId]);
@@ -159,8 +163,10 @@ export function DemoStateProvider({ initial, children }: { initial: DemoShellDat
       setClock,
       resetDemo,
       setLang,
+      switcherOpen,
+      setSwitcherOpen,
     };
-  }, [initial, actingUserId, now, pending, setActingUser, setClock, resetDemo, setLang]);
+  }, [initial, actingUserId, now, pending, setActingUser, setClock, resetDemo, setLang, switcherOpen]);
 
   return <DemoStateContext.Provider value={value}>{children}</DemoStateContext.Provider>;
 }

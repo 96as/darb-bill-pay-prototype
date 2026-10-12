@@ -30,6 +30,8 @@ export type PermissionCode =
   | "run_submitter_cannot_approve"
   | "no_pending_change"
   | "requester_cannot_approve"
+  | "requester_cannot_reject"
+  | "not_requester"
   | "nothing_to_confirm"
   | "maker_cannot_confirm"
   | "already_cancelled"
@@ -190,6 +192,30 @@ export function canApproveBankChange(user: User | undefined, supplier: Supplier,
   if (change.nameCheck.result === "close_match" && !change.nameCheck.confirmedBy) {
     return deny("name_check_unconfirmed", "The new account name is a close match; an approver must confirm it first");
   }
+  return allow();
+}
+
+/**
+ * An approver turns down someone else's IBAN change, whatever its name check says (no match, unconfirmed
+ * close match…): rejecting never moves money, so it is always safe. The requester withdraws instead.
+ */
+export function canRejectBankChange(user: User | undefined, supplier: Supplier, opts?: MakerCheckerOptions): PermissionResult {
+  const role = requireApprover(user, "reject IBAN changes");
+  if (!role.ok || !user) return role;
+  const change = supplier.pendingBankChange;
+  if (!change || change.status !== "pending") return deny("no_pending_change", "There is no IBAN change waiting for approval");
+  if (makerCheckerOn(opts) && change.requestedBy === user.id) {
+    return deny("requester_cannot_reject", "You asked for this change; withdraw it instead");
+  }
+  return allow();
+}
+
+/** The requester (any role) can withdraw their own pending IBAN change. Separate from reject so the audit says which. */
+export function canWithdrawBankChange(user: User | undefined, supplier: Supplier): PermissionResult {
+  if (!user) return deny("no_user", "No user is acting");
+  const change = supplier.pendingBankChange;
+  if (!change || change.status !== "pending") return deny("no_pending_change", "There is no IBAN change waiting for approval");
+  if (change.requestedBy !== user.id) return deny("not_requester", "Only the person who asked for this change can withdraw it");
   return allow();
 }
 

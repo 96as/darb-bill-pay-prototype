@@ -6,6 +6,8 @@ import {
   canCancel,
   canConfirmCloseMatch,
   canPrepare,
+  canRejectBankChange,
+  canWithdrawBankChange,
   closeMatchTarget,
   lastApprovedBankChange,
   materialChanges,
@@ -193,6 +195,34 @@ describe("canApproveBankChange (BP-07)", () => {
     expect(code(canApproveBankChange(FAISAL, noMatch))).toBe("name_check_failed");
     expect(code(canApproveBankChange(FAISAL, close))).toBe("name_check_unconfirmed");
     expect(canApproveBankChange(FAISAL, closeOk).ok).toBe(true);
+  });
+});
+
+describe("canRejectBankChange / canWithdrawBankChange (BP-07)", () => {
+  it("any approver other than the requester can reject, whatever the name check says", () => {
+    for (const nameCheck of [matchCheck({ result: "no_match" }), matchCheck({ result: "close_match" }), matchCheck()]) {
+      const s = makeSupplier({ pendingBankChange: makeBankChange({ requestedBy: NOURA.id, nameCheck }) });
+      expect(canRejectBankChange(FAISAL, s).ok).toBe(true);
+      expect(canRejectBankChange(REEM, s).ok).toBe(true);
+    }
+  });
+
+  it("the requester cannot reject but can withdraw; others cannot withdraw", () => {
+    const s = makeSupplier({ pendingBankChange: makeBankChange({ requestedBy: FAISAL.id, nameCheck: matchCheck({ result: "close_match" }) }) });
+    expect(code(canRejectBankChange(FAISAL, s))).toBe("requester_cannot_reject");
+    expect(canRejectBankChange(FAISAL, s, { makerChecker: false }).ok).toBe(true);
+    expect(canWithdrawBankChange(FAISAL, s).ok).toBe(true);
+    expect(code(canWithdrawBankChange(REEM, s))).toBe("not_requester");
+    const byNoura = makeSupplier({ pendingBankChange: makeBankChange({ requestedBy: NOURA.id }) });
+    expect(canWithdrawBankChange(NOURA, byNoura).ok).toBe(true); // a preparer can withdraw their own request
+  });
+
+  it("a preparer cannot reject; nothing to act on without a pending change", () => {
+    const s = makeSupplier({ pendingBankChange: makeBankChange({ requestedBy: FAISAL.id }) });
+    expect(code(canRejectBankChange(NOURA, s))).toBe("not_approver");
+    expect(code(canRejectBankChange(REEM, makeSupplier()))).toBe("no_pending_change");
+    expect(code(canWithdrawBankChange(NOURA, makeSupplier()))).toBe("no_pending_change");
+    expect(code(canWithdrawBankChange(undefined, s))).toBe("no_user");
   });
 });
 

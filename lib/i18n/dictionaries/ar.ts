@@ -248,6 +248,7 @@ export const ar: Dict = {
     created: "أُنشئت مسودة فاتورة",
     duplicate: "رُفع الملف، لكنه يبدو مكررًا. راجع التنبيه في الفاتورة.",
     remove: "إزالة الملف",
+    chooseFirst: "اختر ملفًا أو أفلته في الأعلى أولًا.",
   },
   inbox: {
     addressTitle: "عنوان صندوق وارد الفواتير",
@@ -517,6 +518,10 @@ export const ar: Dict = {
       checked: "وقت التحقق",
       bank: "البنك",
       confirmation: "التأكيد",
+      compareNames: "مطابقة جزئية: قارن الاسمين قبل التأكيد",
+      supplierLabel: "المورد",
+      withdrawChange: "سحب الطلب",
+      withdrawnToast: "سُحب طلب تغيير الآيبان. يبقى الآيبان الحالي.",
       confirmMatch: "تأكيد مطابقة الاسم",
       confirmedToast: "تم تأكيد مطابقة الاسم",
       changeBank: "تغيير الحساب البنكي",

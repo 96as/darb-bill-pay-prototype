@@ -50,7 +50,13 @@ export function DemoBar({ className }: { className?: string }) {
       <div className="flex items-center gap-2">
         <AlertsBell />
         <InertIconButton icon={CircleQuestionMark} label={t.shell.help} className="hidden xl:flex" />
-        <UserSwitcher users={demo.users} actingUserId={demo.actingUserId} onChange={demo.setActingUser} />
+        <UserSwitcher
+          users={demo.users}
+          actingUserId={demo.actingUserId}
+          onChange={demo.setActingUser}
+          open={demo.switcherOpen}
+          onOpenChange={demo.setSwitcherOpen}
+        />
       </div>
     </div>
   );

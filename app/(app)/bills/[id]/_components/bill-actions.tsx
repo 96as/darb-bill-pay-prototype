@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRightLeft, CalendarClock, Info, Layers, Send, Zap, Landmark } from "lucide-react";
 import { Amount } from "@/components/darb/amount";
@@ -17,9 +17,10 @@ import { useI18n } from "@/lib/i18n/client";
 import { api } from "@/lib/ui/api";
 import { formatClock, formatDate, formatDateTime, formatDayDate, formatSAR } from "@/lib/ui/format";
 import { useApiAction } from "@/lib/ui/use-api-action";
-import { useGateMessage } from "@/lib/ui/use-gate-message";
 import { cn } from "@/lib/utils";
+import { GateReason, GatedButton, type GateLike } from "@/components/darb/gated-button";
 import { PaymentSection } from "@/components/darb/payment-section";
+import { useUnblock } from "@/components/darb/use-unblock";
 import { useBill } from "./bill-context";
 
 const RAIL_ICON: Record<Rail, typeof Zap> = { instant: Zap, sarie: ArrowRightLeft, sadad: Landmark };
@@ -105,20 +106,27 @@ function SubmitPanel() {
   const [accountId, setAccountId] = useState(bill.fundingAccountId || "main");
   const quote = useQuote(payDate);
   const { run, pending } = useApiAction();
-  const gateMessage = useGateMessage();
+  const unblockFor = useUnblock();
 
-  const blocker =
-    bill.duplicateOf
-      ? t.billDetail.submit.duplicateOpen
-      : bill.kind === "supplier" && !bill.supplierId
-        ? t.billDetail.submit.needsSupplier
-        : bill.needsReview.length > 0
-          ? t.billDetail.submit.needsReview
-          : payDate < today
-            ? t.billDetail.submit.pastDate
-            : !view.submitGate.ok
-              ? gateMessage(view.submitGate) ?? null
-              : null;
+  // Checked here first (they change as the user acts on this screen), then the server's submit check.
+  const submitGate: GateLike = bill.duplicateOf
+    ? { ok: false, code: "duplicate_unresolved", message: t.billDetail.submit.duplicateOpen }
+    : bill.kind === "supplier" && !bill.supplierId
+      ? { ok: false, code: "supplier_not_linked", message: t.billDetail.submit.needsSupplier }
+      : bill.needsReview.length > 0
+        ? { ok: false, code: "needs_review", message: t.billDetail.submit.needsReview }
+        : payDate < today
+          ? { ok: false, code: "pay_date_in_past", message: t.billDetail.submit.pastDate }
+          : view.submitGate;
+  const submitUnblock = unblockFor(submitGate, {
+    billId: bill.id,
+    supplierId: bill.supplierId,
+    markChecked: () =>
+      run(() => api.patch(`/api/bills/${bill.id}`, { reviewed: bill.needsReview }), { success: t.billDetail.banners.markedChecked }),
+    dismissDuplicate: () =>
+      run(() => api.post(`/api/bills/${bill.id}/dismiss-duplicate`), { success: t.billDetail.banners.dismissed }),
+  });
+  const submitReasonId = useId();
 
   const items = accounts.map((a) => ({
     value: a.id,
@@ -168,17 +176,14 @@ function SubmitPanel() {
             {fmt(t.billDetail.submit.accountBalance, { amount: formatSAR(account.balance, lang) })}
           </p>
         ) : null}
-        {blocker ? (
-          <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
-            <Info className="mt-px size-3.5 shrink-0" aria-hidden />
-            {blocker}
-          </p>
-        ) : null}
         <div className="flex flex-wrap items-center gap-2">
-          <Button
+          <GatedButton
+            gate={submitGate}
+            showReason={false}
+            describedBy={submitReasonId}
+            pending={pending}
             size="lg"
             className="px-4"
-            disabled={Boolean(blocker) || pending}
             onClick={() =>
               run(() => api.post(`/api/bills/${bill.id}/submit`, { payDate, fundingAccountId: accountId }), {
                 success: t.billDetail.submit.submitted,
@@ -187,7 +192,7 @@ function SubmitPanel() {
           >
             <Send aria-hidden className="rtl:-scale-x-100" />
             {t.billDetail.submit.submit}
-          </Button>
+          </GatedButton>
           {bill.kind === "supplier" ? (
             <Link href={`/bills/runs/new?bills=${bill.id}`} className={cn(buttonVariants({ variant: "pill", size: "lg" }), "px-4")}>
               <Layers aria-hidden />
@@ -198,6 +203,7 @@ function SubmitPanel() {
             <CancelBillButton label={t.billDetail.draftCancel} />
           </span>
         </div>
+        <GateReason id={submitReasonId} gate={submitGate} unblock={submitUnblock} />
       </div>
     </Panel>
   );
@@ -209,8 +215,9 @@ function ApprovalPanel() {
   const { view } = useBill();
   const { bill, today, submittedBy, approvalGate } = view;
   const quote = useQuote(bill.payDate ?? today);
-  const gateMessage = useGateMessage();
+  const unblockFor = useUnblock();
   const { run, pending } = useApiAction();
+  const reasonId = useId();
   return (
     <Panel className="border-warning-foreground/30">
       <PanelHeader
@@ -227,28 +234,35 @@ function ApprovalPanel() {
         </div>
         {quote ? <QuoteBox quote={quote} today={today} /> : null}
         <div className="grid grid-cols-2 gap-2">
-          <Button
+          <GatedButton
+            gate={approvalGate}
+            showReason={false}
+            describedBy={reasonId}
+            pending={pending}
             size="lg"
-            disabled={!approvalGate.ok || pending}
+            className="w-full"
             onClick={() => run(() => api.post(`/api/bills/${bill.id}/approve`), { success: t.billDetail.approval.approved })}
           >
             {t.billDetail.approval.approve}
-          </Button>
-          <Button
+          </GatedButton>
+          <GatedButton
+            gate={approvalGate}
+            showReason={false}
+            describedBy={reasonId}
+            pending={pending}
             size="lg"
             variant="outline"
-            disabled={!approvalGate.ok || pending}
+            className="w-full"
             onClick={() => run(() => api.post(`/api/bills/${bill.id}/reject`), { success: t.billDetail.approval.rejected })}
           >
             {t.billDetail.approval.reject}
-          </Button>
+          </GatedButton>
         </div>
-        {!approvalGate.ok ? (
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <Info className="mt-px size-3.5 shrink-0" aria-hidden />
-            {gateMessage(approvalGate)}
-          </p>
-        ) : null}
+        <GateReason
+          id={reasonId}
+          gate={approvalGate}
+          unblock={unblockFor(approvalGate, { billId: bill.id, supplierId: bill.supplierId })}
+        />
         <div className="flex justify-end">
           <CancelBillButton label={t.billDetail.draftCancel} />
         </div>

@@ -49,6 +49,7 @@ export interface ApprovalItem {
   type: "bill" | "run";
   kind: Bill["kind"];
   href: string;
+  supplierId?: string;
   name: string;
   nameAr?: string;
   /** Invoice / SADAD bill number for bills; run name for runs. */
@@ -166,6 +167,7 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
       type: "bill",
       kind: bill.kind,
       href: `/bills/${bill.id}`,
+      supplierId: bill.supplierId,
       name: bill.sadad?.billerName ?? bill.supplierName,
       nameAr: bill.sadad?.billerNameAr ?? bill.supplierNameAr,
       reference: bill.sadad?.billNumber ?? bill.invoiceNumber,

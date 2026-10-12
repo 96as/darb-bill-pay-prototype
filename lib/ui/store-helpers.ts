@@ -66,6 +66,30 @@ export function bankChangeGate(store: StoreData, supplier: Supplier): Gate {
   return toGate(canApproveBankChange(actingUser(store), supplier, opts(store)));
 }
 
+/**
+ * Turning down a pending IBAN change: any approver other than the requester, whatever the name check says.
+ * (The requester withdraws instead.) TODO: use canRejectBankChange from lib/domain/permissions once it lands.
+ */
+export function rejectChangeGate(store: StoreData, supplier: Supplier): Gate {
+  const user = actingUser(store);
+  const change = supplier.pendingBankChange;
+  if (!change) return { ok: false, code: "no_pending_change", message: "There is no IBAN change waiting for approval" };
+  if (!user) return { ok: false, code: "no_user", message: "No user is acting" };
+  if (makerOn(store) && change.requestedBy === user.id) {
+    return { ok: false, code: "requester_cannot_approve", message: "You requested this IBAN change, so someone else must decide on it" };
+  }
+  if (user.role !== "approver") return { ok: false, code: "not_approver", message: "Only an approver can turn down an IBAN change" };
+  return { ok: true };
+}
+
+/** The requester may withdraw their own pending change. */
+export function withdrawChangeGate(store: StoreData, supplier: Supplier): Gate {
+  const change = supplier.pendingBankChange;
+  return change && change.requestedBy === store.session.userId ? { ok: true } : { ok: false, code: "not_requester" };
+}
+
+const makerOn = (store: StoreData) => store.company.makerChecker !== false;
+
 export function confirmMatchGate(store: StoreData, supplier: Supplier): Gate {
   return toGate(canConfirmCloseMatch(actingUser(store), supplier, opts(store)));
 }

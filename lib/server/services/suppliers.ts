@@ -2,10 +2,18 @@
 import type { BankChangeRequest, Supplier } from "@/lib/domain/types";
 import { isValidSaudiIban, maskIban, normalizeIban, saudiBankFromIban } from "@/lib/domain/iban";
 import { isValidCr, isValidSaudiVat, normalizeDigits } from "@/lib/domain/vat";
-import { canApproveBankChange, canConfirmCloseMatch, canPrepare, closeMatchTarget } from "@/lib/domain/permissions";
+import {
+  canApproveBankChange,
+  canConfirmCloseMatch,
+  canPrepare,
+  canRejectBankChange,
+  canWithdrawBankChange,
+  closeMatchTarget,
+} from "@/lib/domain/permissions";
+import type { RuleResult } from "@/lib/domain/result";
 import type { Ctx } from "../context";
 import { approverIds, getUser } from "../context";
-import { ServiceError, conflict, ensure, invalid } from "../errors";
+import { conflict, ensure, invalid } from "../errors";
 import { audit } from "../audit";
 import { newId } from "../ids";
 import { getBill, getSupplier, notify, paidToCurrentIban, unsentPayment } from "./common";
@@ -170,27 +178,55 @@ export function approveBankChange(ctx: Ctx, supplierId: string, actorId: string)
   return supplier;
 }
 
-/** An approver turns the change down, or the requester withdraws it. Paused bills still need fresh approval. */
+/**
+ * Turns down a pending IBAN change. The requester (any role) WITHDRAWS it ("supplier.bank_change_withdrawn");
+ * any other approver REJECTS it, whatever the name check says ("supplier.bank_change_rejected"). Either way the
+ * IBAN stays as it was; bills paused by the request still need a fresh approval, then pay the old IBAN.
+ */
 export function rejectBankChange(ctx: Ctx, supplierId: string, actorId: string): Supplier {
   const user = getUser(ctx, actorId);
   const supplier = getSupplier(ctx, supplierId);
-  const change = supplier.pendingBankChange;
-  if (!change) throw conflict("no_pending_change", "There is no IBAN change waiting for approval");
-  if (user.role !== "approver" && change.requestedBy !== actorId) {
-    throw new ServiceError("not_approver", "Only an approver, or the person who asked, can turn down this change", 403);
-  }
+  const withdraw = canWithdrawBankChange(user, supplier).ok;
+  if (!withdraw) ensure(canRejectBankChange(user, supplier, { makerChecker: ctx.store.company.makerChecker }));
+  const change = supplier.pendingBankChange!;
   change.status = "rejected";
   change.decidedBy = actorId;
   change.decidedAt = ctx.now.toISOString();
   supplier.bankChanges.push(change);
   delete supplier.pendingBankChange;
-  audit(ctx, actorId, "supplier.bank_change_rejected", { type: "supplier", id: supplier.id }, { pendingIban: change.newIban }, {
-    iban: supplier.iban,
-    requestedBy: change.requestedBy,
-    rejectedBy: actorId,
-    rejectedAt: change.decidedAt,
-  });
+  audit(
+    ctx,
+    actorId,
+    withdraw ? "supplier.bank_change_withdrawn" : "supplier.bank_change_rejected",
+    { type: "supplier", id: supplier.id },
+    { pendingIban: change.newIban, nameCheck: change.nameCheck.result },
+    {
+      iban: supplier.iban,
+      requestedBy: change.requestedBy,
+      requestedAt: change.requestedAt,
+      ...(withdraw ? { withdrawnBy: actorId, withdrawnAt: change.decidedAt } : { rejectedBy: actorId, rejectedAt: change.decidedAt }),
+    },
+  );
   return supplier;
+}
+
+/** What the acting user may do with this supplier's IBAN change and name check (for enabling buttons). */
+export interface SupplierChecks {
+  approveChange: RuleResult;
+  rejectChange: RuleResult;
+  withdrawChange: RuleResult;
+  confirmMatch: RuleResult;
+}
+
+export function supplierChecks(ctx: Ctx, supplier: Supplier, userId: string): SupplierChecks {
+  const user = ctx.store.users.find((u) => u.id === userId);
+  const opts = { makerChecker: ctx.store.company.makerChecker };
+  return {
+    approveChange: canApproveBankChange(user, supplier, opts),
+    rejectChange: canRejectBankChange(user, supplier, opts),
+    withdrawChange: canWithdrawBankChange(user, supplier),
+    confirmMatch: canConfirmCloseMatch(user, supplier, opts),
+  };
 }
 
 /** BP-06: a close name match needs an approver's confirmation before money moves. */

@@ -236,6 +236,7 @@ export const en = {
     created: "Draft bill created",
     duplicate: "Uploaded, but it looks like a duplicate. Check the warning on the bill.",
     remove: "Remove file",
+    chooseFirst: "Choose or drop a file above first.",
   },
   inbox: {
     addressTitle: "Bills inbox address",
@@ -493,6 +494,10 @@ export const en = {
       checked: "Checked",
       bank: "Bank",
       confirmation: "Confirmation",
+      compareNames: "Close match: compare the names before confirming",
+      supplierLabel: "Supplier",
+      withdrawChange: "Withdraw request",
+      withdrawnToast: "IBAN change request withdrawn. The current IBAN stays.",
       confirmMatch: "Confirm name match",
       confirmedToast: "Name match confirmed",
       changeBank: "Change bank account",

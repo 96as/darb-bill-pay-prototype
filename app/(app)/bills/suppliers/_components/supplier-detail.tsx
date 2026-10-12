@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, KeyRound, PauseCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,9 @@ import { IbanInput, ibanState } from "@/components/darb/iban-input";
 import { InitialAvatar } from "@/components/darb/initial-avatar";
 import { MockBadge } from "@/components/darb/mock-badge";
 import { NameCheckBadge } from "@/components/darb/name-check-badge";
+import { GateReason, GatedButton } from "@/components/darb/gated-button";
 import { Notice } from "@/components/darb/notice";
+import { useUnblock } from "@/components/darb/use-unblock";
 import { Panel, PanelHeader } from "@/components/darb/panel";
 import { SourceChip } from "@/components/darb/source-chip";
 import { StatusBadge } from "@/components/darb/status-badge";
@@ -33,7 +35,6 @@ import { useI18n } from "@/lib/i18n/client";
 import { api } from "@/lib/ui/api";
 import { formatDate, formatDateTime } from "@/lib/ui/format";
 import { useApiAction } from "@/lib/ui/use-api-action";
-import { useGateMessage } from "@/lib/ui/use-gate-message";
 import { cn } from "@/lib/utils";
 import type { BankChangeRow, SupplierDetailView } from "../data";
 
@@ -132,15 +133,25 @@ function IbanCompare({ from, to, toBank }: { from: string; to: string; toBank: s
   );
 }
 
-/** Pending IBAN change (BP-07): old → new, who asked and when, name check of the new account, approve / reject. */
+/**
+ * Pending IBAN change (BP-07): old → new, who asked and when, name check of the new account, then
+ * Confirm name match (close match) → Approve / Reject. The requester can withdraw. No dead ends:
+ * every disabled button says why and offers the action that unblocks it.
+ */
 function PendingChange({ view }: { view: SupplierDetailView }) {
   const { t, lang } = useI18n();
   const person = usePerson();
-  const gateMessage = useGateMessage();
+  const unblockFor = useUnblock();
   const { run, pending } = useApiAction();
   const change = view.pending!;
   const id = view.supplier.id;
   const supplierName = lang === "ar" ? view.supplier.nameAr : view.supplier.nameEn;
+  const closeMatchOpen = change.nameCheck.result === "close_match" && !change.nameCheck.confirmedBy;
+  const isRequester = view.withdrawChangeGate.ok;
+  const decisionReasonId = useId();
+
+  const confirmMatch = () =>
+    run(() => api.post(`/api/payees/${id}/name-check/confirm`), { success: t.suppliers.detail.confirmedToast });
 
   /** Approve, then say whether any of this supplier's bills must be approved again (they were paused by the change). */
   async function approve() {
@@ -158,6 +169,13 @@ function PendingChange({ view }: { view: SupplierDetailView }) {
       },
     );
   }
+
+  // Approve's reason: unconfirmed close match → "Confirm name match" (when this user may confirm), else switch user.
+  const approveUnblock = unblockFor(view.approveChangeGate, {
+    supplierId: id,
+    confirmMatch: view.confirmMatchGate.ok ? confirmMatch : undefined,
+  });
+
   return (
     <section className="space-y-4 rounded-xl border border-warning-foreground/30 bg-warning/50 p-5" aria-labelledby="pending-change-title">
       <div className="flex items-start gap-3">
@@ -175,36 +193,88 @@ function PendingChange({ view }: { view: SupplierDetailView }) {
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">{t.suppliers.detail.newNameCheck}</span>
         <NameCheckBadge result={change.nameCheck.result} confirmed={Boolean(change.nameCheck.confirmedBy)} />
-        <span dir="ltr" className="font-mono text-xs text-muted-foreground">{change.nameCheck.returnedName}</span>
+        {change.nameCheck.confirmedBy ? (
+          <span className="text-xs text-muted-foreground">
+            {fmt(t.billDetail.nameCheck.confirmed, { name: person(change.confirmedBy) })}
+          </span>
+        ) : null}
         <MockBadge tooltip={t.suppliers.nameCheckTooltip} />
       </div>
-      {view.actingRole === "approver" ? (
+
+      {closeMatchOpen ? (
+        // Close match: the approver compares the two names, then confirms (BP-06).
+        <div className="space-y-3 rounded-lg border border-warning-foreground/30 bg-background/80 p-4">
+          <p className="text-sm font-medium">{t.suppliers.detail.compareNames}</p>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-background px-3 py-2">
+              <dt className="text-xs text-muted-foreground">{t.suppliers.detail.supplierLabel}</dt>
+              <dd className="text-sm font-medium">{supplierName}</dd>
+            </div>
+            <div className="rounded-lg border bg-background px-3 py-2">
+              <dt className="text-xs text-muted-foreground">{t.suppliers.detail.returnedName}</dt>
+              <dd dir="ltr" className="w-fit font-mono text-sm font-medium">
+                {change.nameCheck.returnedName}
+              </dd>
+            </div>
+          </dl>
+          <GatedButton
+            gate={view.confirmMatchGate}
+            unblock={unblockFor(view.confirmMatchGate, { supplierId: id })}
+            pending={pending}
+            size="lg"
+            className="px-4"
+            onClick={confirmMatch}
+          >
+            {t.suppliers.detail.confirmMatch}
+          </GatedButton>
+        </div>
+      ) : null}
+
+      {view.actingRole === "approver" && !isRequester ? (
         // PRD fraud mitigation: advise calling the supplier on a known number before approving.
         <Notice tone="warning" icon={Phone} className="bg-background/70">
           {fmt(t.suppliers.detail.callBeforeApproving, { name: supplierName })}
         </Notice>
       ) : null}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="lg"
-          className="px-4"
-          disabled={!view.approveChangeGate.ok || pending}
-          onClick={approve}
-        >
-          {t.suppliers.detail.approveChange}
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="bg-background px-4"
-          disabled={!view.approveChangeGate.ok || pending}
-          onClick={() => run(() => api.post(`/api/payees/${id}/bank-account/reject`), { success: t.suppliers.detail.rejectedToast })}
-        >
-          {t.suppliers.detail.rejectChange}
-        </Button>
-        {!view.approveChangeGate.ok ? (
-          <p className="text-xs text-foreground/70">{gateMessage(view.approveChangeGate)}</p>
-        ) : null}
+
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-start gap-2">
+          <GatedButton
+            gate={view.approveChangeGate}
+            showReason={false}
+            describedBy={decisionReasonId}
+            pending={pending}
+            size="lg"
+            className="px-4"
+            onClick={approve}
+          >
+            {t.suppliers.detail.approveChange}
+          </GatedButton>
+          {isRequester ? (
+            <Button
+              size="lg"
+              variant="outline"
+              className="bg-background px-4"
+              disabled={pending}
+              onClick={() => run(() => api.post(`/api/payees/${id}/bank-account/reject`), { success: t.suppliers.detail.withdrawnToast })}
+            >
+              {t.suppliers.detail.withdrawChange}
+            </Button>
+          ) : (
+            <GatedButton
+              gate={view.rejectChangeGate}
+              unblock={unblockFor(view.rejectChangeGate, { supplierId: id })}
+              pending={pending}
+              size="lg"
+              variant="outline"
+              className="bg-background px-4"
+              onClick={() => run(() => api.post(`/api/payees/${id}/bank-account/reject`), { success: t.suppliers.detail.rejectedToast })}
+            >
+              {t.suppliers.detail.rejectChange}
+            </GatedButton>
+          )}
+        </div>
+        <GateReason id={decisionReasonId} gate={view.approveChangeGate} unblock={approveUnblock} />
       </div>
     </section>
   );
@@ -244,7 +314,7 @@ function HistoryItem({ change }: { change: BankChangeRow }) {
 export function SupplierDetail({ view }: { view: SupplierDetailView }) {
   const { t, lang } = useI18n();
   const person = usePerson();
-  const gateMessage = useGateMessage();
+  const unblockFor = useUnblock();
   const { run, pending } = useApiAction();
   const { supplier } = view;
   const paused = Boolean(view.pending);
@@ -284,7 +354,8 @@ export function SupplierDetail({ view }: { view: SupplierDetailView }) {
               {t.suppliers.paused}
             </span>
           ) : null}
-          <ChangeBankDialog supplierId={supplier.id} disabled={paused} />
+          {/* While a change is pending there is nothing to start: the panel below is where it is decided. */}
+          {paused ? null : <ChangeBankDialog supplierId={supplier.id} disabled={false} />}
         </div>
       </div>
 
@@ -339,17 +410,19 @@ export function SupplierDetail({ view }: { view: SupplierDetailView }) {
               </span>
             </Row>
           </dl>
-          {nc.result === "close_match" && !nc.confirmedBy ? (
-            <div className="space-y-2 px-5 pt-4">
-              <Button
+          {nc.result === "close_match" && !nc.confirmedBy && !view.pending ? (
+            // While an IBAN change is pending, its own name check is confirmed in the panel above.
+            <div className="px-5 pt-4">
+              <GatedButton
+                gate={view.confirmMatchGate}
+                unblock={unblockFor(view.confirmMatchGate, { supplierId: supplier.id })}
+                pending={pending}
                 size="lg"
                 className="px-4"
-                disabled={!view.confirmMatchGate.ok || pending}
                 onClick={() => run(() => api.post(`/api/payees/${supplier.id}/name-check/confirm`), { success: t.suppliers.detail.confirmedToast })}
               >
                 {t.suppliers.detail.confirmMatch}
-              </Button>
-              {!view.confirmMatchGate.ok ? <p className="text-xs text-muted-foreground">{gateMessage(view.confirmMatchGate)}</p> : null}
+              </GatedButton>
             </div>
           ) : null}
           <div className="h-5" />

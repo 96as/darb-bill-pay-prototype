@@ -13,12 +13,12 @@ import { useI18n } from "@/lib/i18n/client";
 import { api } from "@/lib/ui/api";
 import { formatDate } from "@/lib/ui/format";
 import { useApiAction } from "@/lib/ui/use-api-action";
-import { useGateMessage } from "@/lib/ui/use-gate-message";
+import { useUnblock } from "@/components/darb/use-unblock";
 import type { ApprovalItem } from "../data";
 
 function BillApproval({ item }: { item: ApprovalItem }) {
   const { t, lang } = useI18n();
-  const gateMessage = useGateMessage();
+  const unblockFor = useUnblock();
   const { run, pending } = useApiAction();
   const name = lang === "ar" && item.nameAr ? item.nameAr : item.name;
   const ref = item.kind === "sadad" ? fmt(t.bills.approvals.sadadBill, { number: item.reference }) : item.reference;
@@ -31,9 +31,9 @@ function BillApproval({ item }: { item: ApprovalItem }) {
       subtitle={[ref, due].filter(Boolean).join(" · ")}
       amount={item.total}
       meta={<StatusBadge status="awaiting_approval" />}
-      disabled={!item.gate.ok}
+      gate={item.gate}
+      unblock={unblockFor(item.gate, { billId: item.id, supplierId: item.supplierId })}
       pending={pending}
-      note={gateMessage(item.gate)}
       onApprove={() =>
         run(() => api.post(`/api/bills/${item.id}/approve`), { success: t.bills.approvals.approvedToast })
       }
@@ -46,7 +46,7 @@ function BillApproval({ item }: { item: ApprovalItem }) {
 
 function RunApproval({ item }: { item: ApprovalItem }) {
   const { t, lang } = useI18n();
-  const gateMessage = useGateMessage();
+  const unblockFor = useUnblock();
   return (
     <ApprovalCard
       href={item.href}
@@ -60,8 +60,8 @@ function RunApproval({ item }: { item: ApprovalItem }) {
         .join(" · ")}
       amount={item.total}
       meta={<StatusBadge status="awaiting_approval" />}
-      disabled={!item.gate.ok}
-      note={gateMessage(item.gate)}
+      gate={item.gate}
+      unblock={unblockFor(item.gate)}
       actions={
         <Link href={item.href} className={buttonVariants({ size: "lg", variant: item.gate.ok ? "default" : "outline" })}>
           {t.bills.approvals.reviewRun}

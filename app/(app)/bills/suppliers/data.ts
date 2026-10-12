@@ -12,7 +12,15 @@ import type {
 } from "@/lib/domain/types";
 import { riyadhDate } from "@/lib/ui/format";
 import { displayStatus } from "@/lib/ui/status";
-import { actingUser, bankChangeGate, confirmMatchGate, userName, type Gate } from "@/lib/ui/store-helpers";
+import {
+  actingUser,
+  bankChangeGate,
+  confirmMatchGate,
+  rejectChangeGate,
+  userName,
+  withdrawChangeGate,
+  type Gate,
+} from "@/lib/ui/store-helpers";
 import { readStore } from "../../store";
 
 type Person = { name: string; nameAr: string };
@@ -118,6 +126,7 @@ export interface BankChangeRow {
   decidedBy?: Person;
   decidedAt?: string;
   nameCheck: NameCheck;
+  confirmedBy?: Person;
 }
 
 export interface SupplierBillRow {
@@ -152,6 +161,10 @@ export interface SupplierDetailView {
   owed: Halalas;
   actingRole?: Role;
   approveChangeGate: Gate;
+  /** Reject is its own gate: any approver but the requester, regardless of the name check. */
+  rejectChangeGate: Gate;
+  /** The requester sees "Withdraw request" instead of Reject. */
+  withdrawChangeGate: Gate;
   confirmMatchGate: Gate;
 }
 
@@ -168,6 +181,7 @@ function changeRow(store: StoreData, c: BankChangeRequest): BankChangeRow {
     decidedBy: userName(store, c.decidedBy),
     decidedAt: c.decidedAt,
     nameCheck: c.nameCheck,
+    confirmedBy: userName(store, c.nameCheck.confirmedBy),
   };
 }
 
@@ -209,6 +223,8 @@ export async function loadSupplierDetail(id: string): Promise<SupplierDetailView
     owed: owedFor(store, s, today).total,
     actingRole: actingUser(store)?.role,
     approveChangeGate: bankChangeGate(store, s),
+    rejectChangeGate: rejectChangeGate(store, s),
+    withdrawChangeGate: withdrawChangeGate(store, s),
     confirmMatchGate: confirmMatchGate(store, s),
   };
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileCode, FileImage, FileText, ShieldCheck, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { GatedButton } from "./gated-button";
 import {
   Dialog,
   DialogContent,
@@ -153,10 +154,17 @@ export function UploadDropzone({ onDone, className }: { onDone?: () => void; cla
         {t.upload.untrusted}
       </p>
       <div className="flex justify-end">
-        <Button size="lg" className="px-4" disabled={!file || pending} onClick={() => file && upload(file)}>
+        <GatedButton
+          gate={file ? { ok: true } : { ok: false, code: "no_file", message: t.upload.chooseFirst }}
+          wrapperClassName="items-end"
+          pending={pending}
+          size="lg"
+          className="px-4"
+          onClick={() => file && upload(file)}
+        >
           <Upload aria-hidden />
           {pending ? t.upload.uploading : t.upload.upload}
-        </Button>
+        </GatedButton>
       </div>
     </div>
   );

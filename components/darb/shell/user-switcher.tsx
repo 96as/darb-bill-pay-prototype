@@ -19,11 +19,16 @@ export function UserSwitcher({
   users,
   actingUserId,
   onChange,
+  open,
+  onOpenChange,
   className,
 }: {
   users: DemoUser[];
   actingUserId: string;
   onChange: (userId: string) => void;
+  /** Controlled open state (optional), so other screens can open the switcher. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   className?: string;
 }) {
   const { t, lang } = useI18n();
@@ -32,7 +37,7 @@ export function UserSwitcher({
   const titleOf = (u: DemoUser) => (lang === "ar" ? u.titleAr : u.title);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined}>
       <DropdownMenuTrigger
         aria-label={`${t.shell.switchUser}: ${nameOf(acting)}`}
         className={cn(
