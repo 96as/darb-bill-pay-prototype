@@ -33,10 +33,10 @@ npm run test:demo      # only the 7-step walkthrough through the API route handl
 
 ## Reset
 
-- In the app: **Reset demo** in the top bar.
+- In the app: **Demo → Reset demo** (the amber Demo button in the top bar; on a phone it floats at the bottom). You land on /bills.
 - From the shell: `curl -X POST localhost:3000/api/demo/reset`, or delete `data/store.json` (and `data/files/`) while the server is stopped.
 
-Demo state lives in memory and is saved to `data/store.json` (gitignored). It is created from the seed on first run. The demo clock starts at **Thu 15 Oct 2026, 4:10 PM Riyadh** and can only move forward. Use the clock control in the top bar (presets included) to move it.
+Demo state lives in memory and is saved to `data/store.json` (gitignored). It is created from the seed on first run. The demo clock starts at **Thu 15 Oct 2026, 4:10 PM Riyadh** and can only move forward. Every user action through the API (create, edit, submit, approve, reject, IBAN request or approval, processing an email…) moves it forward 1 minute, so the Activity log reads as a real sequence. Switching user, changing the clock, reset and marking alerts read do not. Jump ahead with **Demo → Change demo time** (presets included).
 
 ## Real vs mocked
 
@@ -71,7 +71,7 @@ The PRD left these open. Each is the default the prototype uses; change it in on
 
 **Payments and rails**
 1. **Rails.** Up to SAR 20,000.00 (inclusive) uses instant payments (sarie), 24/7. Above that, SARIE runs Sunday–Thursday, 09:00 to 15:58 Riyadh. 15:58:59 is still in; 15:59 is not. Before 09:00 on a banking day, the payment leaves at 09:00 the same day; otherwise it leaves at 09:00 on the next banking day. Saudi public holidays are not modelled. SADAD bills pay 24/7, same day. (PRD open questions 2–3.)
-2. **Send time.** A payment leaves when it is approved if its pay date is today or earlier; otherwise at 09:00 on its pay date. Then the rail rule applies. So the SAR 45,000 bill approved Thu 4:10 PM stays *Scheduled* until Sun 09:00, leaves then, the supplier is notified then, and it arrives Sunday.
+2. **Send time.** A payment leaves when it is approved if its pay date is today or earlier; otherwise at 09:00 on its pay date. Then the rail rule applies. So the SAR 46,000 bill approved on Thursday shortly after 4:10 PM stays *Scheduled* until Sun 09:00, leaves then, the supplier is notified then, and it arrives Sunday.
 3. **"Paid"** means the payment has left on its rail. The mock settles immediately, so the accounting payable is marked paid at the same time.
 4. **Limits** (seeded, admin-set): SAR 100,000 per payment and SAR 150,000 per day. Per-payment is checked at submit. Daily (live payments for the same pay date plus the new one) is checked at approval.
 5. **Short balance.** Payments go in due-date order, and those without a due date go last. A payment that doesn't fit is held, and later ones that still fit are paid. The held ones retry at 09:00 on the next working day (Sunday–Thursday). The finance admin is alerted the day before a pay date whose scheduled payments exceed the balance.
@@ -91,10 +91,52 @@ The PRD left these open. Each is the default the prototype uses; change it in on
 15. **Overdue** is derived: a bill that is not paid or cancelled and whose due date is before today (Riyadh) shows Overdue.
 16. **Accounting** is a generic "Accounting system (mock)" showing an Odoo-style entry (open question 6). The payable is created at approval (BP-15, P1) and marked paid when the payment settles.
 17. **Supplier notices** are in Arabic and English, carry payer, invoice number, amount, transfer reference and expected arrival, and never include bank details. The payer's own downloadable payment confirmation does show the masked IBAN and bank.
-18. **Duplicates** are flagged on the new draft, which cannot be submitted until it is discarded or marked "not a duplicate" (both are logged).
+18. **Duplicates** are flagged on the new draft, which cannot be submitted until it is discarded or marked "not a duplicate" (both are logged). A discarded copy gets the status **Discarded**. This is a terminal status, allowed only from a draft flagged as a duplicate. Discarded bills are hidden from the default list, shown under the "Discarded" filter, and excluded from amounts owed. The PRD does not list this status; it was added at the product lead's request.
 19. **No login.** The user switcher sets who is acting (Finance admin = prepare only; two approvers). This is by design for the demo. The API refuses cross-origin state-changing requests.
 20. **Fake data only.** Company, people, suppliers, VAT numbers (15 digits, starting and ending in 3), CRs and checksum-valid IBANs are invented. Email domains use `.example`. Bank names are only derived from the IBAN bank code. The SADAD biller is a made-up "National Power Utility (demo biller)".
-21. **Logo.** There was no `docs/style/logo.png`, so the sidebar shows the word "Darb". The layout follows the app render on darbpay.com and the tokens in the brief.
+21. **Logo.** There was no `docs/style/logo.png`, so the sidebar shows the word "Darb" ("درب" in Arabic). The layout follows the app render on darbpay.com and the tokens in the brief.
+22. **Pay date per bill.** A run has one pay date and one approval. A bill in it can be set to **Pay on due date**, which gives that bill its own pay date. Rail and arrival come from the same `quotePayment` function either way, and daily limits are checked per pay date.
+23. **Early payment.** The app warns ("Paying {n} days early") when the pay date is more than 3 days before the due date. **Recent IBAN change:** approval screens warn when the supplier's bank details changed in the last 30 days, showing when and who requested and approved it.
+24. **Approval verification.** "Confirm and release" stands in for Darb's usual approval verification (OTP or similar). It is mocked and labelled so.
+25. **Fixture amounts.** VAT is exact at 15% per line and per invoice. The e-invoice is 40,000.00 + 6,000.00 = **46,000.00 SAR** and the saved bill is 11,000.00 + 1,650.00 = **12,650.00 SAR**, so the demo run totals 66,700.00 SAR. 45,000.00 SAR cannot be split into a subtotal plus exact 15% VAT. The rails unit tests still include the spec'd "SAR 45,000 Thursday 4:10 PM arrives Sunday" case.
+
+## What changed after the product-lead review
+
+**1. IBAN change blocker**
+- A close name match on a new IBAN now shows the supplier's name next to the name at the bank, with **Confirm name match** for approvers other than the requester. **Approve change** unlocks once it is confirmed.
+- **Reject** is always available to an approver who didn't make the request. The requester can **Withdraw request**.
+- New service tests cover request → confirm → approve by two users, and reject on a close match.
+
+**2. Payment safety and product logic**
+- Approval screens (desktop run, mobile run, single bill) warn when the supplier's bank details changed in the last 30 days.
+- Early-payment warning, plus a per-bill **Pay on due date** in the run builder.
+- The run builder starts empty, with **Select all** and **Select due before pay date**.
+- **Confirm and release** sheet before any approval, labelled as a mock of Darb's approval verification.
+- Submit lands on the bill or run page with a toast. Buttons stay locked until navigation finishes.
+- Discarded duplicates get a **Discarded** status and filter.
+- Fixture VAT is now exact (46,000.00 / 12,650.00).
+
+**3. UX**
+- **Bill page:** a sticky action column on the right, at the top on narrow screens. The field source is stated once in the banner, and only fields to check or edited fields are tagged. On paid bills, the supplier notice and accounting entries are collapsed, with one-line summaries.
+- **Run table:** fits at 1280px.
+- **Header and demo controls:** the header keeps language, alerts and avatar; the demo controls moved into one **Demo** popover (a floating button on phones).
+- **Bills home:** prepare-only users see "Waiting for approvers" without Approve or Decline.
+- **Toasts:** stacked, at most 3, 4 seconds.
+- **Reset:** lands on /bills.
+- **Clock:** moves forward 1 minute per action.
+- **Requirement IDs:** removed from the UI.
+- **Disabled buttons:** every one now says what unblocks it and offers that action on the same screen.
+
+**4. Arabic**
+- "دفعات الموردين" / "دفعة موردين جديدة" replace "دفعات السداد"; "سداد" now appears only for SADAD.
+- The sidebar shows "درب".
+- Date fields show DD/MM/YYYY, with يوم/شهر/سنة in Arabic.
+- PDF previews no longer drop letters in the Arabic UI.
+
+**5. Accessibility**
+- Icon-only buttons are labelled in both languages.
+- Disabled buttons expose their reason through `aria-describedby`.
+- Nav items have proper names, and the current page is marked.
 
 ## Known limitations
 
