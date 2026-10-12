@@ -1,0 +1,1495 @@
+{
+  "generated_at": "2026-10-12T20:09:30.606Z",
+  "capture": "CDP screencast (JPEG quality 100) → ffmpeg H.264, CRF 16, 30 fps",
+  "video": {
+    "desktop": "1920×1080 (1280×720 CSS viewport at 1.5x)",
+    "mobile": "1170×2532 (390×844 at 3x, iPhone user agent)",
+    "fps": 30,
+    "codec": "H.264 High, yuv420p"
+  },
+  "notes": [
+    "All times are milliseconds. at_ms / from_ms are inside the scene clip; part_at_ms / part_from_ms are inside part1.mp4 or part2.mp4.",
+    "Zoom boxes are in video pixels of the scene clip at that moment. In part2.mp4 the phone clip P2-3 is centred on a dark 1920×1080 canvas, so use clips/P2-3.mp4 inside a phone frame instead.",
+    "The demo clock starts Thu 15 Oct 2026, 4:10 PM Riyadh, after the 3:58 PM SARIE cut-off; P1-7 moves it to Sun 18 Oct, 9:00 AM off camera.",
+    "Scales below 1.5 are boxes too wide or tall to fit the frame at 1.5 (full-width banners, the invoice-beside-approval shot, the run table); use the scale given or crop the edges.",
+    "User switches (P1-4 Noura → Faisal) and the clock jump (P1-7) happen through the demo API with a reload; the reload is marked as a cut and P1-4 carries the overlay \"Now: Faisal · approver\". P1-7's \"Sunday 18 Oct, 9:00 AM\" overlay explains the time jump.",
+    "Seen on camera (app, not changed): the run summary card in P2-2 clips its \"Submit for approval\" button text at 1280 px and wraps \"Limits · Per payment\"; toasts (bottom right) briefly cover the right-hand column (P1-1 over Add supplier, P1-2, P1-4); the desktop approval panel (P1-6) doesn't repeat the amount, which sits in the page header above the fold when Approve is on screen; the payment confirmation (P1-7) is a plain narrow column on a blank page."
+  ],
+  "parts": [
+    {
+      "part": 1,
+      "file": "part1.mp4",
+      "duration_ms": 137600,
+      "scenes": [
+        "P1-1",
+        "P1-2",
+        "P1-3",
+        "P1-4",
+        "P1-5",
+        "P1-6",
+        "P1-7",
+        "P1-8"
+      ]
+    },
+    {
+      "part": 2,
+      "file": "part2.mp4",
+      "duration_ms": 72900,
+      "scenes": [
+        "P2-1",
+        "P2-2",
+        "P2-3",
+        "P2-4",
+        "P2-5"
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "P1-1",
+      "part": 1,
+      "title": "Upload an e-invoice",
+      "clip": "clips/P1-1.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 18067,
+      "holds": [
+        {
+          "at_ms": 42,
+          "duration_ms": 1500,
+          "reason": "Bills page",
+          "part_at_ms": 42
+        },
+        {
+          "at_ms": 2661,
+          "duration_ms": 800,
+          "reason": "upload dialog open",
+          "part_at_ms": 2661
+        },
+        {
+          "at_ms": 4560,
+          "duration_ms": 700,
+          "reason": "file chosen",
+          "part_at_ms": 4560
+        },
+        {
+          "at_ms": 6532,
+          "duration_ms": 1500,
+          "reason": "draft opened",
+          "part_at_ms": 6532
+        },
+        {
+          "at_ms": 8253,
+          "duration_ms": 3000,
+          "reason": "zoom: \"Read from e-invoice\" banner",
+          "part_at_ms": 8253
+        },
+        {
+          "at_ms": 12239,
+          "duration_ms": 600,
+          "reason": "fields in view",
+          "part_at_ms": 12239
+        },
+        {
+          "at_ms": 13055,
+          "duration_ms": 3000,
+          "reason": "zoom: fields read from the XML (invoice number → total)",
+          "part_at_ms": 13055
+        },
+        {
+          "at_ms": 16056,
+          "duration_ms": 1500,
+          "reason": "end of scene",
+          "part_at_ms": 16056
+        },
+        {
+          "at_ms": 17558,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 17558
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 8253,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('[role=\"status\"], [role=\"alert\"]').filter({ hasText: 'Read from e-invoice' }).first()",
+            "name": "\"Read from e-invoice\" banner"
+          },
+          "box": {
+            "x": 431,
+            "y": 330,
+            "w": 1028,
+            "h": 90
+          },
+          "scale": 1.6,
+          "part_at_ms": 8253
+        },
+        {
+          "at_ms": 13055,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('section').filter({ has: getByRole('heading', { name: 'Invoice details' }) }).last().getByText('Invoice number', { exact: true })",
+            "name": "fields read from the XML (invoice number → total)"
+          },
+          "box": {
+            "x": 416,
+            "y": 466,
+            "w": 460,
+            "h": 531
+          },
+          "scale": 1.6,
+          "part_at_ms": 13055
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 8253,
+          "duration_ms": 3000,
+          "text": "Read from the invoice's ZATCA XML. No typing.",
+          "position": "next to zoom",
+          "part_at_ms": 8253
+        }
+      ],
+      "cuts": [],
+      "notes": [],
+      "screenshot": "screenshots/P1-1.png",
+      "part_start_ms": 0,
+      "part_end_ms": 18067
+    },
+    {
+      "id": "P1-2",
+      "part": 1,
+      "title": "Duplicate blocked",
+      "clip": "clips/P1-2.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 17900,
+      "holds": [
+        {
+          "at_ms": 63,
+          "duration_ms": 1000,
+          "reason": "the original draft",
+          "part_at_ms": 18130
+        },
+        {
+          "at_ms": 2273,
+          "duration_ms": 800,
+          "reason": "Bills list",
+          "part_at_ms": 20340
+        },
+        {
+          "at_ms": 4110,
+          "duration_ms": 800,
+          "reason": "upload dialog open",
+          "part_at_ms": 22177
+        },
+        {
+          "at_ms": 5980,
+          "duration_ms": 700,
+          "reason": "file chosen",
+          "part_at_ms": 24047
+        },
+        {
+          "at_ms": 7908,
+          "duration_ms": 1500,
+          "reason": "duplicate draft opened",
+          "part_at_ms": 25975
+        },
+        {
+          "at_ms": 9634,
+          "duration_ms": 3000,
+          "reason": "zoom: duplicate block",
+          "part_at_ms": 27701
+        },
+        {
+          "at_ms": 13797,
+          "duration_ms": 1000,
+          "reason": "confirm discard",
+          "part_at_ms": 31864
+        },
+        {
+          "at_ms": 15887,
+          "duration_ms": 1500,
+          "reason": "copy discarded",
+          "part_at_ms": 33954
+        },
+        {
+          "at_ms": 17387,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 35454
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 9633,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('[role=\"status\"], [role=\"alert\"]').filter({ hasText: 'Possible duplicate' }).first()",
+            "name": "duplicate block"
+          },
+          "box": {
+            "x": 431,
+            "y": 330,
+            "w": 1443,
+            "h": 152
+          },
+          "scale": 1.26,
+          "part_at_ms": 27700
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 9633,
+          "duration_ms": 3000,
+          "text": "Same invoice twice? Blocked.",
+          "position": "next to zoom",
+          "part_at_ms": 27700
+        }
+      ],
+      "cuts": [],
+      "notes": [],
+      "screenshot": "screenshots/P1-2.png",
+      "part_start_ms": 18067,
+      "part_end_ms": 35967
+    },
+    {
+      "id": "P1-3",
+      "part": 1,
+      "title": "New supplier + name check",
+      "clip": "clips/P1-3.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 11867,
+      "holds": [
+        {
+          "at_ms": 63,
+          "duration_ms": 1000,
+          "reason": "draft: new supplier, not in your list",
+          "part_at_ms": 36030
+        },
+        {
+          "at_ms": 2290,
+          "duration_ms": 1500,
+          "reason": "form prefilled from the XML",
+          "part_at_ms": 38257
+        },
+        {
+          "at_ms": 4352,
+          "duration_ms": 800,
+          "reason": "prefilled IBAN and notice email",
+          "part_at_ms": 40319
+        },
+        {
+          "at_ms": 6068,
+          "duration_ms": 1000,
+          "reason": "name check result",
+          "part_at_ms": 42035
+        },
+        {
+          "at_ms": 7300,
+          "duration_ms": 3000,
+          "reason": "zoom: name-check result (Match, name at the bank, payee screening)",
+          "part_at_ms": 43267
+        },
+        {
+          "at_ms": 10374,
+          "duration_ms": 1000,
+          "reason": "end of scene",
+          "part_at_ms": 46341
+        },
+        {
+          "at_ms": 11376,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 47343
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 7300,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "getByText('Name check', { exact: true }).first()",
+            "name": "name-check result (Match, name at the bank, payee screening)"
+          },
+          "box": {
+            "x": 594,
+            "y": 537,
+            "w": 1116,
+            "h": 222
+          },
+          "scale": 1.6,
+          "part_at_ms": 43267
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 7300,
+          "duration_ms": 3000,
+          "text": "Bank confirms the account name",
+          "subtitle": "In the pilot, Darb ops checks this by hand",
+          "position": "next to zoom",
+          "part_at_ms": 43267
+        }
+      ],
+      "cuts": [],
+      "notes": [],
+      "screenshot": "screenshots/P1-3.png",
+      "part_start_ms": 35967,
+      "part_end_ms": 47834
+    },
+    {
+      "id": "P1-4",
+      "part": 1,
+      "title": "IBAN-change lock",
+      "clip": "clips/P1-4.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 32933,
+      "holds": [
+        {
+          "at_ms": 67,
+          "duration_ms": 1200,
+          "reason": "supplier page (Noura, preparer)",
+          "part_at_ms": 47901
+        },
+        {
+          "at_ms": 2387,
+          "duration_ms": 1500,
+          "reason": "warning: call the supplier on a known number",
+          "part_at_ms": 50221
+        },
+        {
+          "at_ms": 6470,
+          "duration_ms": 800,
+          "reason": "IBAN valid",
+          "part_at_ms": 54304
+        },
+        {
+          "at_ms": 8340,
+          "duration_ms": 1200,
+          "reason": "change requested",
+          "part_at_ms": 56174
+        },
+        {
+          "at_ms": 9774,
+          "duration_ms": 3000,
+          "reason": "zoom: paused-payments notice (requested by Noura, payments paused)",
+          "part_at_ms": 57608
+        },
+        {
+          "at_ms": 12876,
+          "duration_ms": 1500,
+          "reason": "Noura can't approve (Switch user under the button)",
+          "part_at_ms": 60710
+        },
+        {
+          "at_ms": 15231,
+          "duration_ms": 2000,
+          "reason": "text: Now: Faisal · approver",
+          "part_at_ms": 63065
+        },
+        {
+          "at_ms": 17691,
+          "duration_ms": 1500,
+          "reason": "close match: compare the names",
+          "part_at_ms": 65525
+        },
+        {
+          "at_ms": 19945,
+          "duration_ms": 3000,
+          "reason": "zoom: confirm match + approve buttons",
+          "part_at_ms": 67779
+        },
+        {
+          "at_ms": 24039,
+          "duration_ms": 1000,
+          "reason": "name match confirmed",
+          "part_at_ms": 71873
+        },
+        {
+          "at_ms": 26121,
+          "duration_ms": 1500,
+          "reason": "new IBAN active",
+          "part_at_ms": 73955
+        },
+        {
+          "at_ms": 28326,
+          "duration_ms": 3000,
+          "reason": "zoom: audit line: requested by Noura, approved by Faisal",
+          "part_at_ms": 76160
+        },
+        {
+          "at_ms": 31427,
+          "duration_ms": 1000,
+          "reason": "end of scene",
+          "part_at_ms": 79261
+        },
+        {
+          "at_ms": 32428,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 80262
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 9774,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "getByText('IBAN change waiting for approval').first() + getByText(/Payments to this supplier are paused until a second person approves/).first()",
+            "name": "paused-payments notice (requested by Noura, payments paused)"
+          },
+          "box": {
+            "x": 473,
+            "y": 316,
+            "w": 1245,
+            "h": 119
+          },
+          "scale": 1.46,
+          "part_at_ms": 57608
+        },
+        {
+          "at_ms": 19945,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "getByText('Close match: compare the names before confirming').first() + getByText('Name at the bank', { exact: true }).first().locator('..') + getByRole('button', { name: 'Approve change', exact: true })",
+            "name": "confirm match + approve buttons"
+          },
+          "box": {
+            "x": 450,
+            "y": 425,
+            "w": 1110,
+            "h": 467
+          },
+          "scale": 1.6,
+          "part_at_ms": 67779
+        },
+        {
+          "at_ms": 28326,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('section').filter({ has: getByRole('heading', { name: 'Bank account history' }) }).last()",
+            "name": "audit line: requested by Noura, approved by Faisal"
+          },
+          "box": {
+            "x": 405,
+            "y": 707,
+            "w": 744,
+            "h": 353
+          },
+          "scale": 1.6,
+          "part_at_ms": 76160
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 9774,
+          "duration_ms": 3000,
+          "text": "IBAN changed → unsent payments pause",
+          "position": "next to zoom",
+          "part_at_ms": 57608
+        },
+        {
+          "at_ms": 15231,
+          "duration_ms": 2000,
+          "text": "Now: Faisal · approver",
+          "position": "top",
+          "part_at_ms": 63065
+        },
+        {
+          "at_ms": 19945,
+          "duration_ms": 3000,
+          "text": "A second person must approve the change",
+          "subtitle": "In the pilot, Darb ops checks the name by hand",
+          "position": "next to zoom",
+          "part_at_ms": 67779
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 4932,
+          "to_ms": 6467,
+          "action": "speed 2x",
+          "reason": "typing the new IBAN",
+          "part_from_ms": 52766,
+          "part_to_ms": 54301
+        },
+        {
+          "from_ms": 14528,
+          "to_ms": 15217,
+          "action": "cut",
+          "reason": "user switch to Faisal (reload)",
+          "part_from_ms": 62362,
+          "part_to_ms": 63051
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P1-4.png",
+      "part_start_ms": 47834,
+      "part_end_ms": 80767
+    },
+    {
+      "id": "P1-5",
+      "part": 1,
+      "title": "Submit and pay on a date",
+      "clip": "clips/P1-5.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 14267,
+      "holds": [
+        {
+          "at_ms": 42,
+          "duration_ms": 1000,
+          "reason": "Bills list",
+          "part_at_ms": 80809
+        },
+        {
+          "at_ms": 3435,
+          "duration_ms": 1200,
+          "reason": "submit panel",
+          "part_at_ms": 84202
+        },
+        {
+          "at_ms": 4853,
+          "duration_ms": 3000,
+          "reason": "zoom: rail + expected arrival",
+          "part_at_ms": 85620
+        },
+        {
+          "at_ms": 8170,
+          "duration_ms": 3000,
+          "reason": "zoom: Sunday arrival (after the 3:58 PM cut-off)",
+          "part_at_ms": 88937
+        },
+        {
+          "at_ms": 12250,
+          "duration_ms": 1500,
+          "reason": "submitted, awaiting approval",
+          "part_at_ms": 93017
+        },
+        {
+          "at_ms": 13749,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 94516
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 4853,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('dl').filter({ hasText: 'Expected arrival' }).first()",
+            "name": "rail + expected arrival"
+          },
+          "box": {
+            "x": 1212,
+            "y": 572,
+            "w": 654,
+            "h": 195
+          },
+          "scale": 1.6,
+          "part_at_ms": 85620
+        },
+        {
+          "at_ms": 8169,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "getByText(/cut-off has passed/).first()",
+            "name": "Sunday arrival (after the 3:58 PM cut-off)"
+          },
+          "box": {
+            "x": 1206,
+            "y": 731,
+            "w": 666,
+            "h": 116
+          },
+          "scale": 1.6,
+          "part_at_ms": 88936
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 4853,
+          "duration_ms": 3000,
+          "text": "Rail and arrival date, before approval",
+          "position": "next to zoom",
+          "part_at_ms": 85620
+        },
+        {
+          "at_ms": 8169,
+          "duration_ms": 3000,
+          "text": "After Thursday's cut-off → arrives Sunday",
+          "position": "next to zoom",
+          "part_at_ms": 88936
+        }
+      ],
+      "cuts": [],
+      "notes": [],
+      "screenshot": "screenshots/P1-5.png",
+      "part_start_ms": 80767,
+      "part_end_ms": 95034
+    },
+    {
+      "id": "P1-6",
+      "part": 1,
+      "title": "Approve on the web",
+      "clip": "clips/P1-6.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 15800,
+      "holds": [
+        {
+          "at_ms": 75,
+          "duration_ms": 1500,
+          "reason": "approval view (Faisal): amount, status, invoice",
+          "part_at_ms": 95109
+        },
+        {
+          "at_ms": 2083,
+          "duration_ms": 800,
+          "reason": "invoice beside the approval panel",
+          "part_at_ms": 97117
+        },
+        {
+          "at_ms": 3881,
+          "duration_ms": 3000,
+          "reason": "zoom: invoice beside the amount (approval panel)",
+          "part_at_ms": 98915
+        },
+        {
+          "at_ms": 7107,
+          "duration_ms": 3000,
+          "reason": "zoom: bank-change line: requested by Noura, approved by Faisal",
+          "part_at_ms": 102141
+        },
+        {
+          "at_ms": 11250,
+          "duration_ms": 1500,
+          "reason": "confirm sheet: total, payments, earliest arrival",
+          "part_at_ms": 106284
+        },
+        {
+          "at_ms": 13805,
+          "duration_ms": 1500,
+          "reason": "scheduled for Sun 18 Oct",
+          "part_at_ms": 108839
+        },
+        {
+          "at_ms": 15305,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 110339
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 3881,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('section').filter({ has: getByRole('heading', { name: 'Invoice', exact: true }) }).first()",
+            "name": "invoice beside the amount (approval panel)"
+          },
+          "box": {
+            "x": 405,
+            "y": 0,
+            "w": 1494,
+            "h": 1080
+          },
+          "scale": 1.1,
+          "part_at_ms": 98915
+        },
+        {
+          "at_ms": 7107,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "getByText(/Bank details changed on/).first()",
+            "name": "bank-change line: requested by Noura, approved by Faisal"
+          },
+          "box": {
+            "x": 1223,
+            "y": 782,
+            "w": 632,
+            "h": 89
+          },
+          "scale": 1.6,
+          "part_at_ms": 102141
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 3881,
+          "duration_ms": 3000,
+          "text": "Approver sees the invoice, not just an amount",
+          "position": "next to zoom",
+          "part_at_ms": 98915
+        }
+      ],
+      "cuts": [],
+      "notes": [],
+      "screenshot": "screenshots/P1-6.png",
+      "part_start_ms": 95034,
+      "part_end_ms": 110834
+    },
+    {
+      "id": "P1-7",
+      "part": 1,
+      "title": "Paid + proof",
+      "clip": "clips/P1-7.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 14700,
+      "holds": [
+        {
+          "at_ms": 81,
+          "duration_ms": 2000,
+          "reason": "text: Sunday 18 Oct, 9:00 AM",
+          "part_at_ms": 110915
+        },
+        {
+          "at_ms": 2083,
+          "duration_ms": 1000,
+          "reason": "paid bill",
+          "part_at_ms": 112917
+        },
+        {
+          "at_ms": 3112,
+          "duration_ms": 800,
+          "reason": "download button",
+          "part_at_ms": 113946
+        },
+        {
+          "at_ms": 4975,
+          "duration_ms": 600,
+          "reason": "downloaded",
+          "part_at_ms": 115809
+        },
+        {
+          "at_ms": 6329,
+          "duration_ms": 1200,
+          "reason": "payment confirmation (English)",
+          "part_at_ms": 117163
+        },
+        {
+          "at_ms": 9086,
+          "duration_ms": 3000,
+          "reason": "zoom: the confirmation document (English + Arabic), title → expected arrival",
+          "part_at_ms": 119920
+        },
+        {
+          "at_ms": 12702,
+          "duration_ms": 1500,
+          "reason": "expected arrival Sunday 18 October 2026",
+          "part_at_ms": 123536
+        },
+        {
+          "at_ms": 14202,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 125036
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 9085,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "getByText('Payment confirmation').first()",
+            "name": "the confirmation document (English + Arabic), title → expected arrival"
+          },
+          "box": {
+            "x": 390,
+            "y": 19,
+            "w": 1131,
+            "h": 815
+          },
+          "scale": 1.26,
+          "part_at_ms": 119919
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 81,
+          "duration_ms": 2000,
+          "text": "Sunday 18 Oct, 9:00 AM",
+          "position": "top",
+          "part_at_ms": 110915
+        },
+        {
+          "at_ms": 9085,
+          "duration_ms": 3000,
+          "text": "Proof of payment, Arabic and English",
+          "position": "next to zoom",
+          "part_at_ms": 119919
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 5725,
+          "to_ms": 6300,
+          "action": "cut",
+          "reason": "page load",
+          "part_from_ms": 116559,
+          "part_to_ms": 117134
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P1-7.png",
+      "part_start_ms": 110834,
+      "part_end_ms": 125534
+    },
+    {
+      "id": "P1-8",
+      "part": 1,
+      "title": "Bills view",
+      "clip": "clips/P1-8.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 12067,
+      "holds": [
+        {
+          "at_ms": 41,
+          "duration_ms": 1500,
+          "reason": "Bills view",
+          "part_at_ms": 125575
+        },
+        {
+          "at_ms": 2240,
+          "duration_ms": 600,
+          "reason": "owed per supplier",
+          "part_at_ms": 127774
+        },
+        {
+          "at_ms": 3274,
+          "duration_ms": 3000,
+          "reason": "zoom: totals per supplier",
+          "part_at_ms": 128808
+        },
+        {
+          "at_ms": 9056,
+          "duration_ms": 2500,
+          "reason": "Overdue filter applied",
+          "part_at_ms": 134590
+        },
+        {
+          "at_ms": 11556,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 137090
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 3274,
+          "duration_ms": 3000,
+          "element": {
+            "selector": "locator('section').filter({ has: getByRole('heading', { name: 'Owed per supplier' }) }).last()",
+            "name": "totals per supplier"
+          },
+          "box": {
+            "x": 1155,
+            "y": 617,
+            "w": 744,
+            "h": 443
+          },
+          "scale": 1.6,
+          "part_at_ms": 128808
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 3274,
+          "duration_ms": 3000,
+          "text": "Everything owed, per supplier",
+          "position": "next to zoom",
+          "part_at_ms": 128808
+        }
+      ],
+      "cuts": [],
+      "notes": [],
+      "screenshot": "screenshots/P1-8.png",
+      "part_start_ms": 125534,
+      "part_end_ms": 137601
+    },
+    {
+      "id": "P2-1",
+      "part": 2,
+      "title": "Email inbox + OCR",
+      "clip": "clips/P2-1.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 16867,
+      "holds": [
+        {
+          "at_ms": 41,
+          "duration_ms": 800,
+          "reason": "Bills page",
+          "part_at_ms": 41
+        },
+        {
+          "at_ms": 2042,
+          "duration_ms": 1200,
+          "reason": "forwarded email with 2 attachments",
+          "part_at_ms": 2042
+        },
+        {
+          "at_ms": 4318,
+          "duration_ms": 1200,
+          "reason": "two drafts created",
+          "part_at_ms": 4318
+        },
+        {
+          "at_ms": 7180,
+          "duration_ms": 800,
+          "reason": "photo draft",
+          "part_at_ms": 7180
+        },
+        {
+          "at_ms": 8200,
+          "duration_ms": 2500,
+          "reason": "zoom: \"check these fields\" prompt",
+          "part_at_ms": 8200
+        },
+        {
+          "at_ms": 11722,
+          "duration_ms": 1500,
+          "reason": "invoice number, due date and VAT tagged \"OCR — check\"",
+          "part_at_ms": 11722
+        },
+        {
+          "at_ms": 15149,
+          "duration_ms": 1200,
+          "reason": "fields checked",
+          "part_at_ms": 15149
+        },
+        {
+          "at_ms": 16350,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 16350
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 8200,
+          "duration_ms": 2500,
+          "element": {
+            "selector": "locator('[role=\"status\"], [role=\"alert\"]').filter({ hasText: 'Read by OCR' }).first()",
+            "name": "\"check these fields\" prompt"
+          },
+          "box": {
+            "x": 431,
+            "y": 330,
+            "w": 704,
+            "h": 146
+          },
+          "scale": 1.6,
+          "part_at_ms": 8200
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 8200,
+          "duration_ms": 2500,
+          "text": "Launch · email inbox + OCR",
+          "position": "next to zoom",
+          "part_at_ms": 8200
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 0,
+          "to_ms": 8200,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 0,
+          "part_to_ms": 8200
+        },
+        {
+          "from_ms": 10700,
+          "to_ms": 16867,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 10700,
+          "part_to_ms": 16867
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P2-1.png",
+      "part_start_ms": 0,
+      "part_end_ms": 16867
+    },
+    {
+      "id": "P2-2",
+      "part": 2,
+      "title": "Payment run",
+      "clip": "clips/P2-2.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 15433,
+      "holds": [
+        {
+          "at_ms": 42,
+          "duration_ms": 600,
+          "reason": "Bills page",
+          "part_at_ms": 16909
+        },
+        {
+          "at_ms": 1898,
+          "duration_ms": 800,
+          "reason": "new run",
+          "part_at_ms": 18765
+        },
+        {
+          "at_ms": 3772,
+          "duration_ms": 1000,
+          "reason": "three bills selected",
+          "part_at_ms": 20639
+        },
+        {
+          "at_ms": 6087,
+          "duration_ms": 2500,
+          "reason": "zoom: rail and arrival per bill",
+          "part_at_ms": 22954
+        },
+        {
+          "at_ms": 9955,
+          "duration_ms": 2500,
+          "reason": "zoom: run total and one approval",
+          "part_at_ms": 26822
+        },
+        {
+          "at_ms": 13719,
+          "duration_ms": 1200,
+          "reason": "run submitted",
+          "part_at_ms": 30586
+        },
+        {
+          "at_ms": 14919,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 31786
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 6087,
+          "duration_ms": 2500,
+          "element": {
+            "selector": "locator('table').first()",
+            "name": "rail and arrival per bill"
+          },
+          "box": {
+            "x": 407,
+            "y": 162,
+            "w": 1491,
+            "h": 756
+          },
+          "scale": 1.22,
+          "part_at_ms": 22954
+        },
+        {
+          "at_ms": 9955,
+          "duration_ms": 2500,
+          "element": {
+            "selector": "locator('section, aside').filter({ hasText: '66,700.00' }).last()",
+            "name": "run total and one approval"
+          },
+          "box": {
+            "x": 1397,
+            "y": 456,
+            "w": 502,
+            "h": 603
+          },
+          "scale": 1.6,
+          "part_at_ms": 26822
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 9955,
+          "duration_ms": 2500,
+          "text": "Launch · many bills, one approval",
+          "position": "next to zoom",
+          "part_at_ms": 26822
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 0,
+          "to_ms": 6087,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 16867,
+          "part_to_ms": 22954
+        },
+        {
+          "from_ms": 8587,
+          "to_ms": 9955,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 25454,
+          "part_to_ms": 26822
+        },
+        {
+          "from_ms": 12455,
+          "to_ms": 15433,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 29322,
+          "part_to_ms": 32300
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P2-2.png",
+      "part_start_ms": 16867,
+      "part_end_ms": 32300
+    },
+    {
+      "id": "P2-3",
+      "part": 2,
+      "title": "Approve in the app",
+      "clip": "clips/P2-3.mp4",
+      "size": {
+        "w": 1170,
+        "h": 2532
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 15667,
+      "holds": [
+        {
+          "at_ms": 57,
+          "duration_ms": 1200,
+          "reason": "My actions",
+          "part_at_ms": 32357
+        },
+        {
+          "at_ms": 1258,
+          "duration_ms": 2500,
+          "reason": "text: Launch · approve from the app",
+          "part_at_ms": 33558
+        },
+        {
+          "at_ms": 5032,
+          "duration_ms": 1200,
+          "reason": "run cards: invoice beside amount",
+          "part_at_ms": 37332
+        },
+        {
+          "at_ms": 7348,
+          "duration_ms": 1200,
+          "reason": "Cool Breeze card: bank changed, first payment",
+          "part_at_ms": 39648
+        },
+        {
+          "at_ms": 9823,
+          "duration_ms": 1500,
+          "reason": "confirm sheet",
+          "part_at_ms": 42123
+        },
+        {
+          "at_ms": 12656,
+          "duration_ms": 2500,
+          "reason": "two settled, Cool Breeze scheduled for Sun 18 Oct",
+          "part_at_ms": 44956
+        },
+        {
+          "at_ms": 15158,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 47458
+        }
+      ],
+      "zooms": [],
+      "text": [
+        {
+          "at_ms": 1258,
+          "duration_ms": 2500,
+          "text": "Launch · approve from the app",
+          "position": "top",
+          "part_at_ms": 33558
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 0,
+          "to_ms": 1258,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 32300,
+          "part_to_ms": 33558
+        },
+        {
+          "from_ms": 3758,
+          "to_ms": 15667,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 36058,
+          "part_to_ms": 47967
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P2-3.png",
+      "part_start_ms": 32300,
+      "part_end_ms": 47967
+    },
+    {
+      "id": "P2-4",
+      "part": 2,
+      "title": "Supplier notice + accounting sync",
+      "clip": "clips/P2-4.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 15700,
+      "holds": [
+        {
+          "at_ms": 44,
+          "duration_ms": 1000,
+          "reason": "paid bill GOL-2026-1003",
+          "part_at_ms": 48011
+        },
+        {
+          "at_ms": 2114,
+          "duration_ms": 800,
+          "reason": "supplier notice open",
+          "part_at_ms": 50081
+        },
+        {
+          "at_ms": 4288,
+          "duration_ms": 2500,
+          "reason": "zoom: supplier notice (English + Arabic)",
+          "part_at_ms": 52255
+        },
+        {
+          "at_ms": 8525,
+          "duration_ms": 800,
+          "reason": "payable entry open",
+          "part_at_ms": 56492
+        },
+        {
+          "at_ms": 11117,
+          "duration_ms": 800,
+          "reason": "payment entry: supplier, invoice, VAT, file, journal lines",
+          "part_at_ms": 59084
+        },
+        {
+          "at_ms": 12698,
+          "duration_ms": 2500,
+          "reason": "zoom: accounting entry (payment, invoice attached, journal lines)",
+          "part_at_ms": 60665
+        },
+        {
+          "at_ms": 15200,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 63167
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 4288,
+          "duration_ms": 2500,
+          "element": {
+            "selector": "locator('section, details, div').filter({ has: getByText('No bank details are included').first() }).filter({ hasText: 'What the supplier received' }).last()",
+            "name": "supplier notice (English + Arabic)"
+          },
+          "box": {
+            "x": 407,
+            "y": 187,
+            "w": 1491,
+            "h": 707
+          },
+          "scale": 1.22,
+          "part_at_ms": 52255
+        },
+        {
+          "at_ms": 12698,
+          "duration_ms": 2500,
+          "element": {
+            "selector": "locator('[data-entry-kind=\"payment\"]')",
+            "name": "accounting entry (payment, invoice attached, journal lines)"
+          },
+          "box": {
+            "x": 407,
+            "y": 248,
+            "w": 1491,
+            "h": 584
+          },
+          "scale": 1.22,
+          "part_at_ms": 60665
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 4288,
+          "duration_ms": 2500,
+          "text": "Launch · supplier notified, books updated",
+          "position": "next to zoom",
+          "part_at_ms": 52255
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 0,
+          "to_ms": 4288,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 47967,
+          "part_to_ms": 52255
+        },
+        {
+          "from_ms": 6788,
+          "to_ms": 12698,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 54755,
+          "part_to_ms": 60665
+        },
+        {
+          "from_ms": 15198,
+          "to_ms": 15700,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 63165,
+          "part_to_ms": 63667
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P2-4.png",
+      "part_start_ms": 47967,
+      "part_end_ms": 63667
+    },
+    {
+      "id": "P2-5",
+      "part": 2,
+      "title": "SADAD in the same list + Arabic",
+      "clip": "clips/P2-5.mp4",
+      "size": {
+        "w": 1920,
+        "h": 1080
+      },
+      "clip_start_ms": 0,
+      "clip_end_ms": 9233,
+      "holds": [
+        {
+          "at_ms": 42,
+          "duration_ms": 800,
+          "reason": "Bills list",
+          "part_at_ms": 63709
+        },
+        {
+          "at_ms": 1622,
+          "duration_ms": 2500,
+          "reason": "zoom: SADAD row",
+          "part_at_ms": 65289
+        },
+        {
+          "at_ms": 5648,
+          "duration_ms": 3000,
+          "reason": "Arabic view (right-to-left)",
+          "part_at_ms": 69315
+        },
+        {
+          "at_ms": 8746,
+          "duration_ms": 500,
+          "reason": "tail",
+          "part_at_ms": 72413
+        }
+      ],
+      "zooms": [
+        {
+          "at_ms": 1622,
+          "duration_ms": 2500,
+          "element": {
+            "selector": "locator('tr').filter({ hasText: 'National Power Utility' }).first()",
+            "name": "SADAD row"
+          },
+          "box": {
+            "x": 413,
+            "y": 878,
+            "w": 1479,
+            "h": 110
+          },
+          "scale": 1.23,
+          "part_at_ms": 65289
+        }
+      ],
+      "text": [
+        {
+          "at_ms": 1622,
+          "duration_ms": 2500,
+          "text": "Launch · SADAD bills in the same list",
+          "position": "next to zoom",
+          "part_at_ms": 65289
+        }
+      ],
+      "cuts": [
+        {
+          "from_ms": 0,
+          "to_ms": 1622,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 63667,
+          "part_to_ms": 65289
+        },
+        {
+          "from_ms": 4361,
+          "to_ms": 5646,
+          "action": "cut",
+          "reason": "switch to Arabic",
+          "part_from_ms": 68028,
+          "part_to_ms": 69313
+        },
+        {
+          "from_ms": 8648,
+          "to_ms": 9233,
+          "action": "speed 2x",
+          "reason": "Part 2 pace: no zoom or text here",
+          "part_from_ms": 72315,
+          "part_to_ms": 72900
+        }
+      ],
+      "notes": [],
+      "screenshot": "screenshots/P2-5.png",
+      "part_start_ms": 63667,
+      "part_end_ms": 72900
+    }
+  ]
+}

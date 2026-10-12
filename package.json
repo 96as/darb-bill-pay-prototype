@@ -11,7 +11,8 @@
     "test:utc": "TZ=UTC vitest run",
     "test:demo": "vitest run tests/demo-walkthrough.test.ts",
     "test:watch": "vitest",
-    "fixtures": "tsx scripts/make-fixtures.ts"
+    "fixtures": "tsx scripts/make-fixtures.ts",
+    "demo:record": "tsx demo-recording/record.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -42,6 +43,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9",
     "eslint-config-next": "15.5.27",
+    "playwright": "^1.55.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
