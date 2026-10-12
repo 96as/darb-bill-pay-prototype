@@ -40,6 +40,7 @@ import {
   GREEN_OASIS_INVOICE,
   GREEN_OASIS_INVOICE_0917,
   SAR,
+  vat15,
 } from "./fixture-lib/data";
 import {
   buildBillionLaughsXml,
@@ -382,11 +383,49 @@ function writePreviews(dir: string) {
   }
 }
 
+/**
+ * VAT must be internally consistent on every invoice: each line's VAT = round(line taxable × 15%),
+ * and the invoice VAT = sum of line VATs = round(subtotal × 15%). Amounts in halalas.
+ */
+function assertVatConsistent(label: string, lines: { taxable: number; vat: number }[], subtotal: number, vat: number) {
+  const problems: string[] = [];
+  lines.forEach((l, i) => {
+    if (l.vat !== vat15(l.taxable)) problems.push(`line ${i + 1}: VAT ${SAR(l.vat)} != 15% of ${SAR(l.taxable)}`);
+  });
+  const lineSum = lines.reduce((a, l) => a + l.taxable, 0);
+  const vatSum = lines.reduce((a, l) => a + l.vat, 0);
+  if (lineSum !== subtotal) problems.push(`lines add up to ${SAR(lineSum)}, subtotal is ${SAR(subtotal)}`);
+  if (vatSum !== vat) problems.push(`line VATs add up to ${SAR(vatSum)}, invoice VAT is ${SAR(vat)}`);
+  if (vat !== vat15(subtotal)) problems.push(`invoice VAT ${SAR(vat)} != 15% of subtotal ${SAR(subtotal)} (${SAR(vat15(subtotal))})`);
+  if (problems.length) throw new Error(`${label}: VAT is not consistent: ${problems.join("; ")}`);
+}
+
+function checkAllVat() {
+  const cb = coolBreezeTotals();
+  assertVatConsistent(
+    COOL_BREEZE_INVOICE.id,
+    cb.lines.map((l) => ({ taxable: l.lineExtension, vat: l.vat })),
+    cb.subtotal,
+    cb.vat,
+  );
+  const g = greenOasis0917Totals();
+  assertVatConsistent(GREEN_OASIS_INVOICE_0917.id, g.lines.map((l) => ({ taxable: l.amount, vat: l.vat })), g.subtotal, g.vat);
+  const photo = GREEN_OASIS_INVOICE;
+  assertVatConsistent(
+    photo.id,
+    photo.lines.map((l) => ({ taxable: l.quantity * l.unitPrice, vat: vat15(l.quantity * l.unitPrice) })),
+    photo.expected.subtotal,
+    photo.expected.vat,
+  );
+}
+
 async function main() {
   const previewIdx = process.argv.indexOf("--preview-dir");
   const previewDir = previewIdx > -1 ? path.resolve(process.argv[previewIdx + 1]) : undefined;
   const tmp = mkdtempSync(path.join(os.tmpdir(), "darb-fixtures-"));
   try {
+    log("0/6 VAT consistency (per line and per invoice, 15%)");
+    checkAllVat();
     log("1/6 XML (bilingual + variants + hostile files)");
     const xmlBytes = writeXmlFixtures();
     log("2/6 PDF INV-2026-0451 (Chrome print-to-pdf, then attach XML with pdf-lib)");

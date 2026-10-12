@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { ConfirmRelease } from "@/components/darb/confirm-release";
 import { useApiAction } from "@/components/darb/payment-actions";
 import { formatDayDate, formatInstant, payeeName, permissionMessage } from "@/components/darb/payment-format";
 import { billApprovalHint, rejectHint } from "@/components/darb/payment-rules";
@@ -13,7 +15,7 @@ import { useI18n } from "@/lib/i18n/client";
 import type { BillApprovalView } from "@/app/(app)/bills/runs/data";
 import { ApprovalOutcome, ApproveBar } from "./approval-actions";
 import { MobileBillCard } from "./mobile-bill-card";
-import { useMobileDemo } from "./mobile-shell";
+import { useMobileDemo, useMobileUnblock } from "./mobile-shell";
 
 /** /m/bills/{id}: single-bill approval (SADAD bills and bills outside a run), same card as runs. */
 export function MobileBillApproval({ view }: { view: BillApprovalView }) {
@@ -34,6 +36,8 @@ export function MobileBillApproval({ view }: { view: BillApprovalView }) {
         : permissionMessage(hint, t, lang, { bills: [bill], suppliers: view.approval.suppliers })
       : null;
   const released = Boolean(item.payment);
+  const unblockFor = useMobileUnblock();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const account = view.accounts.find((a) => a.id === (item.payment?.fundingAccountId ?? bill.fundingAccountId));
   const submitter = bill.submittedBy ? view.people[bill.submittedBy] : undefined;
 
@@ -92,12 +96,27 @@ export function MobileBillApproval({ view }: { view: BillApprovalView }) {
         <ApproveBar
           approveLabel={fmt(m.approveOne, { amount: formatSAR(bill.total, lang) })}
           declineTitle={m.declineBillTitle}
-          disabled={!hint?.ok}
-          declineDisabled={!(hint && rejectHint(hint).ok)}
-          note={note}
+          gate={hint ?? { ok: true }}
+          declineGate={hint ? rejectHint(hint) : { ok: true }}
+          reason={note}
+          unblock={hint ? unblockFor(hint, bill.supplierId) : undefined}
           busy={busy !== null}
-          onApprove={() => call("approve", `${path}/approve`, {}, { success: m.approvedToast })}
+          onApprove={() => setConfirmOpen(true)}
           onDecline={() => call("reject", `${path}/reject`, {}, { success: m.declinedToast })}
+        />
+      ) : null}
+      {awaiting ? (
+        <ConfirmRelease
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          total={bill.total}
+          count={1}
+          earliestArrival={item.quote.arrivalDate}
+          pending={busy === "approve"}
+          onConfirm={async () => {
+            const done = await call("approve", `${path}/approve`, {}, { success: m.approvedToast });
+            if (done) setConfirmOpen(false);
+          }}
         />
       ) : null}
     </div>

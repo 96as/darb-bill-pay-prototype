@@ -42,6 +42,13 @@ describe("transitions", () => {
     }
   });
 
+  it("allows draft → discarded, and nothing out of discarded", () => {
+    expect(canTransition("draft", "discarded")).toBe(true);
+    expect(canTransition("awaiting_approval", "discarded")).toBe(false);
+    expect(BILL_TRANSITIONS.discarded).toEqual([]);
+    expect(displayStatus({ status: "discarded", dueDate: "2026-10-01" }, TODAY)).toBe("discarded"); // never overdue
+  });
+
   it("refuses shortcuts and anything out of cancelled", () => {
     expect(canTransition("draft", "scheduled")).toBe(false);
     expect(canTransition("draft", "paid")).toBe(false);

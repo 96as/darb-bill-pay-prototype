@@ -3,6 +3,7 @@ import type { Alert, Bill, ISODate, Payment, PaymentRun, RailQuote, Supplier } f
 import { normalizeIban } from "@/lib/domain/iban";
 import { quotePayment, quoteSadadPayment } from "@/lib/domain/rails";
 import { riyadhDate } from "@/lib/domain/time";
+import { recentBankChange } from "@/lib/domain/permissions";
 import { formatSAR } from "@/lib/domain/money";
 import type { Ctx } from "../context";
 import { notFound } from "../errors";
@@ -57,6 +58,28 @@ export function paidToCurrentIban(ctx: Ctx, supplier: Supplier): boolean {
 export const paidSupplierIds = (ctx: Ctx): Set<string> =>
   new Set(ctx.store.suppliers.filter((s) => paidToCurrentIban(ctx, s)).map((s) => s.id));
 
+/** "IBAN changed recently" for approvers: the supplier's last approved change if within 30 days of now. */
+export interface BankChangeInfo {
+  changedAt: string;
+  requestedBy: string;
+  requestedByName: string;
+  approvedBy: string;
+  approvedByName: string;
+}
+
+export function bankChangeInfo(ctx: Ctx, supplier: Supplier | undefined): BankChangeInfo | undefined {
+  const change = supplier ? recentBankChange(supplier, ctx.now) : undefined;
+  if (!change?.decidedAt || !change.decidedBy) return undefined;
+  const name = (id: string) => ctx.store.users.find((u) => u.id === id)?.name ?? id;
+  return {
+    changedAt: change.decidedAt,
+    requestedBy: change.requestedBy,
+    requestedByName: name(change.requestedBy),
+    approvedBy: change.decidedBy,
+    approvedByName: name(change.decidedBy),
+  };
+}
+
 /** Rail and arrival for a bill paid on `payDate`, seen from now (promise C: always via the rails module). */
 export function quoteFor(ctx: Ctx, bill: Bill, payDate: ISODate): RailQuote {
   return bill.kind === "sadad" ? quoteSadadPayment(payDate, ctx.now) : quotePayment(bill.total, payDate, ctx.now);
@@ -89,7 +112,7 @@ export function committedForDay(ctx: Ctx, day: ISODate, excludeBillIds: Readonly
   return sum;
 }
 
-/** "Cool Breeze HVAC Contracting Co. INV-2026-0451 (45,000.00 SAR)". */
+/** "Cool Breeze HVAC Contracting Co. INV-2026-0451 (46,000.00 SAR)". */
 export function billLabel(bill: Bill, lang: "en" | "ar" = "en"): string {
   const name = lang === "ar" ? (bill.sadad?.billerNameAr ?? bill.supplierNameAr ?? bill.supplierName) : (bill.sadad?.billerName ?? bill.supplierName);
   const number = bill.sadad?.billNumber ?? bill.invoiceNumber;

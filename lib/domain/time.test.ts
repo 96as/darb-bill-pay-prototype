@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  daysEarly,
   atRiyadh,
   diffDays,
   isBankingDay,
@@ -72,6 +73,13 @@ describe("calendar", () => {
     expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
     expect(diffDays("2026-10-15", "2026-11-12")).toBe(28);
     expect(diffDays("2026-10-15", "2026-10-14")).toBe(-1);
+  });
+
+  it("counts days paid early", () => {
+    expect(daysEarly("2026-10-15", "2026-11-12")).toBe(28);
+    expect(daysEarly("2026-10-25", "2026-10-25")).toBe(0);
+    expect(daysEarly("2026-10-15", "2026-10-14")).toBe(-1);
+    expect(daysEarly("2026-10-15", "2026-10-19")).toBe(4); // > 3: the UI warns
   });
 
   it("knows the demo week", () => {

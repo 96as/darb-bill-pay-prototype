@@ -14,6 +14,7 @@ export const DISPLAY_STATUSES: DisplayStatus[] = [
   "paid",
   "failed",
   "cancelled",
+  "discarded",
 ];
 
 export function isDisplayStatus(value: unknown): value is DisplayStatus {

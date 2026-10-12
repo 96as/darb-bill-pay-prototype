@@ -109,6 +109,11 @@ export function diffDays(a: ISODate, b: ISODate): number {
   return Math.round((Date.UTC(pb.year, pb.month - 1, pb.day) - Date.UTC(pa.year, pa.month - 1, pa.day)) / 86_400_000);
 }
 
+/** Days paid before the due date (positive = early, 0 = on the day, negative = late). The UI warns above 3. */
+export function daysEarly(payDate: ISODate, dueDate: ISODate): number {
+  return diffDays(payDate, dueDate);
+}
+
 export function weekdayOf(date: ISODate): Weekday {
   const { year, month, day } = parseISODate(date);
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay() as Weekday;

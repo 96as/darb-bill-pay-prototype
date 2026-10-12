@@ -18,7 +18,7 @@ export default async function BillsPage({
       <BillsSectionHeader actions={<UploadInvoiceButton />} />
       <BillsStats balances={view.balances} />
       <BillsTableCard view={view} />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ApprovalsPanel items={view.approvals} />
         <OwedPanel owed={view.owed} />
       </div>

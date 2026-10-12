@@ -125,7 +125,7 @@ describe("IBAN change lock (BP-07)", () => {
   it("a payment scheduled before the change is held and never sent, even when the clock passes its send time", async () => {
     const ctx = setup();
     const { run, einvoice, supplierB } = await demoRun(ctx);
-    approveRun(ctx, run.id, FAISAL); // Thu 16:10: SARIE 45,000 waits for Sun 09:00
+    approveRun(ctx, run.id, FAISAL); // Thu 16:10: SARIE 46,000 waits for Sun 09:00
     const payment = paymentOf(ctx, einvoice.id)!;
     expect(payment).toMatchObject({ status: "scheduled", iban: IBAN_B, scheduledFor: "2026-10-18T06:00:00.000Z" });
     const balanceBefore = balanceOf(ctx);
@@ -151,7 +151,7 @@ describe("IBAN change lock (BP-07)", () => {
     expect(payment).toMatchObject({ status: "settled", iban: IBAN_B_NEW });
     expect(ctx.store.railLedger.filter((r) => r.requestKey === payment.requestKey)).toHaveLength(1);
     expect(ctx.store.payments.filter((p) => p.billId === einvoice.id)).toHaveLength(1);
-    expect(balanceOf(ctx)).toBe(balanceBefore - 4_500_000);
+    expect(balanceOf(ctx)).toBe(balanceBefore - 4_600_000);
   });
 
   it("a stale approval for the old IBAN can never send, even if the payment were re-armed by mistake", async () => {
@@ -226,7 +226,7 @@ describe("IBAN change to an unknown account (close match)", () => {
   it("an approver can reject without confirming; the old IBAN stays and paused bills, once re-approved, pay it", async () => {
     const ctx = setup();
     const { run, einvoice, supplierB } = await demoRun(ctx);
-    approveRun(ctx, run.id, FAISAL); // SARIE 45,000 scheduled for Sun 09:00
+    approveRun(ctx, run.id, FAISAL); // SARIE 46,000 scheduled for Sun 09:00
     const payment = paymentOf(ctx, einvoice.id)!;
     requestBankChange(ctx, supplierB.id, IBAN_UNKNOWN, NOURA);
     expect(payment).toMatchObject({ status: "held", holdReason: "iban_change" });

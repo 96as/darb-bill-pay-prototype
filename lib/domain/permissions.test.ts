@@ -3,6 +3,8 @@ import {
   canApproveBankChange,
   canApproveBill,
   canApproveRun,
+  canDiscardDuplicate,
+  recentBankChange,
   canCancel,
   canConfirmCloseMatch,
   canPrepare,
@@ -266,6 +268,29 @@ describe("canCancel (BP-18)", () => {
     expect(code(canCancel(makeBill({ status: "scheduled" }), makePayment({ status: "settled" })))).toBe("payment_sent");
     expect(code(canCancel(makeBill({ status: "paid" })))).toBe("already_paid");
     expect(code(canCancel(makeBill({ status: "cancelled" })))).toBe("already_cancelled");
+  });
+});
+
+describe("canDiscardDuplicate (BP-04)", () => {
+  it("only a draft flagged as a duplicate", () => {
+    expect(canDiscardDuplicate(makeBill({ status: "draft", duplicateOf: "b_x" })).ok).toBe(true);
+    expect(code(canDiscardDuplicate(makeBill({ status: "draft" })))).toBe("not_duplicate");
+    expect(code(canDiscardDuplicate(makeBill({ status: "awaiting_approval", duplicateOf: "b_x" })))).toBe("not_draft");
+    expect(code(canCancel(makeBill({ status: "discarded" })))).toBe("already_discarded");
+  });
+});
+
+describe("recentBankChange", () => {
+  const now = new Date("2026-10-15T13:10:00.000Z");
+  const withChange = (decidedAt: string) =>
+    makeSupplier({ bankChanges: [makeBankChange({ status: "approved", decidedBy: REEM.id, decidedAt })] });
+  it("returns the last approved change within 30 days", () => {
+    expect(recentBankChange(withChange("2026-10-15T13:00:00.000Z"), now)?.decidedBy).toBe(REEM.id);
+    expect(recentBankChange(withChange("2026-09-15T13:10:00.000Z"), now)).toBeDefined(); // exactly 30 days
+    expect(recentBankChange(withChange("2026-09-15T13:09:59.000Z"), now)).toBeUndefined();
+    expect(recentBankChange(withChange("2026-10-01T00:00:00.000Z"), now, 7)).toBeUndefined();
+    expect(recentBankChange(makeSupplier(), now)).toBeUndefined();
+    expect(recentBankChange(makeSupplier({ bankChanges: [makeBankChange({ status: "rejected", decidedAt: "2026-10-15T00:00:00.000Z" })] }), now)).toBeUndefined();
   });
 });
 

@@ -8,11 +8,12 @@ import { ConfirmDialog } from "@/components/darb/confirm-dialog";
 import { Notice } from "@/components/darb/notice";
 import { Panel, PanelHeader } from "@/components/darb/panel";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/darb/date-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { quotePayment, quoteSadadPayment } from "@/lib/domain/rails";
+import { daysEarly } from "@/lib/domain/time";
 import type { Payment, Rail, RailQuote } from "@/lib/domain/types";
-import { fmt } from "@/lib/i18n";
+import { fmt, plural } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
 import { api } from "@/lib/ui/api";
 import { formatClock, formatDate, formatDateTime, formatDayDate, formatSAR } from "@/lib/ui/format";
@@ -21,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { GateReason, GatedButton, type GateLike } from "@/components/darb/gated-button";
 import { PaymentSection } from "@/components/darb/payment-section";
 import { useUnblock } from "@/components/darb/use-unblock";
+import { BankChangeLine } from "../../_components/bank-change-line";
+import { ReleaseConfirm } from "../../_components/release-confirm";
 import { useBill } from "./bill-context";
 
 const RAIL_ICON: Record<Rail, typeof Zap> = { instant: Zap, sarie: ArrowRightLeft, sadad: Landmark };
@@ -143,14 +146,7 @@ function SubmitPanel() {
             <label htmlFor="pay-date" className="text-xs text-muted-foreground">
               {t.billDetail.submit.payDate}
             </label>
-            <Input
-              id="pay-date"
-              type="date"
-              min={today}
-              value={payDate}
-              onChange={(e) => setPayDate(e.target.value)}
-              className="h-9 bg-background"
-            />
+            <DateInput id="pay-date" min={today} value={payDate} onChange={setPayDate} />
           </div>
           <div className="grid gap-1.5">
             <label id="funding-label" className="text-xs text-muted-foreground">
@@ -171,6 +167,14 @@ function SubmitPanel() {
           </div>
         </div>
         {quote ? <QuoteBox quote={quote} today={today} /> : null}
+        {bill.dueDate && payDate && daysEarly(payDate, bill.dueDate) > 3 ? (
+          <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
+            <CalendarClock className="mt-px size-3.5 shrink-0" aria-hidden />
+            {plural(lang, t.billDetail.submit.daysEarly, daysEarly(payDate, bill.dueDate), {
+              date: formatDate(bill.dueDate, lang),
+            })}
+          </p>
+        ) : null}
         {account && account.balance < bill.total ? (
           <p className="text-xs text-warning-foreground">
             {fmt(t.billDetail.submit.accountBalance, { amount: formatSAR(account.balance, lang) })}
@@ -187,6 +191,8 @@ function SubmitPanel() {
             onClick={() =>
               run(() => api.post(`/api/bills/${bill.id}/submit`, { payDate, fundingAccountId: accountId }), {
                 success: t.billDetail.submit.submitted,
+                // Land on this bill's page (also when submitted from a stale or redirected view).
+                navigateTo: `/bills/${bill.id}`,
               })
             }
           >
@@ -218,6 +224,7 @@ function ApprovalPanel() {
   const unblockFor = useUnblock();
   const { run, pending } = useApiAction();
   const reasonId = useId();
+  const [releaseOpen, setReleaseOpen] = useState(false);
   return (
     <Panel className="border-warning-foreground/30">
       <PanelHeader
@@ -233,6 +240,7 @@ function ApprovalPanel() {
           <span className="font-medium">{bill.payDate ? formatDate(bill.payDate, lang) : "—"}</span>
         </div>
         {quote ? <QuoteBox quote={quote} today={today} /> : null}
+        {view.bankChange ? <BankChangeLine change={view.bankChange} /> : null}
         <div className="grid grid-cols-2 gap-2">
           <GatedButton
             gate={approvalGate}
@@ -241,7 +249,8 @@ function ApprovalPanel() {
             pending={pending}
             size="lg"
             className="w-full"
-            onClick={() => run(() => api.post(`/api/bills/${bill.id}/approve`), { success: t.billDetail.approval.approved })}
+            // Approving releases money: "Confirm and release" first.
+            onClick={() => setReleaseOpen(true)}
           >
             {t.billDetail.approval.approve}
           </GatedButton>
@@ -258,6 +267,14 @@ function ApprovalPanel() {
             {t.billDetail.approval.reject}
           </GatedButton>
         </div>
+        <ReleaseConfirm
+          open={releaseOpen}
+          onOpenChange={setReleaseOpen}
+          total={bill.total}
+          payments={1}
+          earliestArrival={view.releaseArrival ?? quote?.arrivalDate}
+          onConfirm={() => run(() => api.post(`/api/bills/${bill.id}/approve`), { success: t.billDetail.approval.approved })}
+        />
         <GateReason
           id={reasonId}
           gate={approvalGate}

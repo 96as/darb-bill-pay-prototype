@@ -30,6 +30,8 @@ export function ApprovalCard({
   href,
   gate,
   unblock,
+  warning,
+  hideActions,
   className,
 }: {
   avatar?: React.ReactNode;
@@ -53,6 +55,10 @@ export function ApprovalCard({
   /** Permission gate for Approve/Decline: when denied, both are disabled and the reason + unblock action show under them. */
   gate?: GateLike;
   unblock?: Unblock;
+  /** A warning line above the buttons (e.g. recent bank-detail change). */
+  warning?: React.ReactNode;
+  /** Read-only card (e.g. for prepare-only users): no Approve/Decline, no reason. */
+  hideActions?: boolean;
   className?: string;
 }) {
   const t = useT();
@@ -80,7 +86,8 @@ export function ApprovalCard({
         <Amount value={amount} className="text-lg font-medium" currencyClassName="text-sm font-normal text-muted-foreground" />
         {meta}
       </div>
-      {actions ?? (
+      {warning}
+      {hideActions ? null : actions ?? (
         <div className="grid grid-cols-2 gap-2">
           <Button size="lg" onClick={onApprove} disabled={blocked || pending} aria-describedby={describedBy}>
             {t.bills.approvals.approve}
@@ -90,7 +97,7 @@ export function ApprovalCard({
           </Button>
         </div>
       )}
-      {gate && !gate.ok ? <GateReason id={reasonId} gate={gate} unblock={unblock} /> : null}
+      {gate && !gate.ok && !hideActions ? <GateReason id={reasonId} gate={gate} unblock={unblock} /> : null}
       {disabled && note && !(gate && !gate.ok) ? (
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <Info className="mt-px size-3.5 shrink-0" aria-hidden />

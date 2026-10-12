@@ -73,6 +73,7 @@ export const en = {
     failed: "Failed",
     cancelled: "Cancelled",
     overdue: "Overdue",
+    discarded: "Discarded",
   },
   common: {
     currency: "SAR",
@@ -174,6 +175,8 @@ export const en = {
       reviewRun: "Review run",
       approvedToast: "Approved — payment scheduled",
       rejectedToast: "Sent back to draft",
+      waitingTitle: "Waiting for approvers",
+      waitingDescription: "Bills and runs waiting for someone who can approve them",
     },
   },
   demo: {
@@ -221,6 +224,7 @@ export const en = {
     close: "Close",
     yes: "Yes",
     working: "Working…",
+    openCalendar: "Open calendar",
   },
   upload: {
     title: "Upload invoice",
@@ -294,6 +298,7 @@ export const en = {
       eInvoiceXml: "Read from the ZATCA XML file. Darb did not check this invoice with ZATCA.",
       ocrTitle: "Read by OCR (mock)",
       ocr: "Check the highlighted fields against the invoice before submitting.",
+      ocrChecked: "The fields were checked by a person.",
       markChecked: "Mark fields as checked",
       markedChecked: "Fields marked as checked",
       editFields: "Edit fields",
@@ -307,6 +312,8 @@ export const en = {
       notDuplicate: "Not a duplicate",
       dismissed: "Duplicate warning dismissed",
       cancelledTitle: "Cancelled",
+      discardedTitle: "Discarded",
+      discardedBody: "Discarded as a duplicate by {name} on {date}. It is not paid and is hidden from the bills list.",
       cancelled: "Cancelled by {name} on {date}.",
       pausedTitle: "Payments to this supplier are paused",
       paused: "An IBAN change is waiting for a second person's approval.",
@@ -371,6 +378,10 @@ export const en = {
       needsReview: "Mark the OCR fields as checked first.",
       duplicateOpen: "Resolve the duplicate warning first.",
       pastDate: "The pay date can't be in the past.",
+      daysEarly: {
+        one: "Paying {count} day early (due {date})",
+        other: "Paying {count} days early (due {date})",
+      } as PluralForms,
       accountBalance: "{amount} available",
     },
     rails: {
@@ -393,6 +404,7 @@ export const en = {
       reject: "Reject",
       approved: "Approved — payment scheduled",
       rejected: "Sent back to draft",
+      bankChanged: "Bank details changed on {date} · requested by {requester}, approved by {approver}",
     },
     scheduled: {
       title: "Payment scheduled",
@@ -420,7 +432,7 @@ export const en = {
     meta: {
       title: "Details",
       sender: "Sent by",
-      senderHelp: "Saved from the forwarded email (BP-02)",
+      senderHelp: "Saved from the forwarded email",
       file: "File",
       source: "Source",
       created: "Created",
@@ -521,7 +533,7 @@ export const en = {
       callBeforeApproving: "Before approving, call {name} on a number you already have — not one from the email that asked for the change.",
       rejectedToast: "IBAN change rejected. The current IBAN stays.",
       historyTitle: "Bank account history",
-      historyDescription: "Every IBAN change with both people and times (BP-07)",
+      historyDescription: "Every IBAN change with both people and times",
       historyEmpty: "No changes yet",
       requestedBy: "Requested by {name}",
       decidedBy: "{status} by {name}",

@@ -21,15 +21,17 @@ export function isOverdue(bill: Pick<Bill, "status" | "dueDate">, today: ISODate
  *   restarts approval, BP-08) | cancelled (until sent, BP-18)
  * - paid → failed (payment returned after sending, BP-10)
  * - failed → scheduled (retry) | draft (fix and resubmit) | cancelled
+ * - draft → discarded only for a flagged duplicate (checked by canDiscardDuplicate); discarded is final.
  * - cancelled is final.
  */
 export const BILL_TRANSITIONS: Readonly<Record<BillStatus, readonly BillStatus[]>> = {
-  draft: ["awaiting_approval", "cancelled"],
+  draft: ["awaiting_approval", "cancelled", "discarded"],
   awaiting_approval: ["scheduled", "draft", "cancelled"],
   scheduled: ["paid", "failed", "awaiting_approval", "draft", "cancelled"],
   paid: ["failed"],
   failed: ["scheduled", "draft", "cancelled"],
   cancelled: [],
+  discarded: [],
 };
 
 export function canTransition(from: BillStatus, to: BillStatus): boolean {

@@ -1,7 +1,8 @@
 // Runs and the scheduler (BP-08, BP-10, BP-17, BP-18, PL-04).
 import { describe, expect, it } from "vitest";
-import { approveRun, createRun, getRun, rejectRun, submitRun } from "./runs";
-import { approveBill, cancelBill, createManualBill, submitBill, updateBill, billsSummary, getBillDetail } from "./bills";
+import { approveRun, createRun, getRun, quoteBills, rejectRun, submitRun } from "./runs";
+import { approveBankChange, requestBankChange } from "./suppliers";
+import { approveBill, cancelBill, createManualBill, discardDuplicate, listBills, submitBill, updateBill, billsSummary, getBillDetail } from "./bills";
 import { addSupplier } from "./suppliers";
 import { runScheduler } from "./scheduler";
 import { cancelPayment, paymentConfirmation, renderConfirmationHtml } from "./payments";
@@ -33,7 +34,7 @@ describe("approving a run", () => {
     expect(billOf(ctx, einvoice.id).approvals[0]).toMatchObject({ userId: FAISAL, runId: run.id, ibanSnapshot: "SA6710000000020315550044" });
     const keys = ctx.store.payments.filter((p) => p.runId === run.id).map((p) => p.requestKey);
     expect(keys.sort()).toEqual([`pay_${einvoice.id}`, `pay_${photo.id}`, `pay_${saved.id}`].sort());
-    expect(balanceOf(ctx)).toBe(18_000_000 - 805_000 - 1_250_000);
+    expect(balanceOf(ctx)).toBe(18_000_000 - 805_000 - 1_265_000);
     // Accounting: payables for all three (BP-15), payments for the two sent (BP-14).
     const entries = ctx.store.accounting.filter((e) => [einvoice.id, photo.id, saved.id].includes(e.billId));
     expect(entries.filter((e) => e.kind === "payable")).toHaveLength(3);
@@ -58,9 +59,84 @@ describe("approving a run", () => {
     expect(paymentOf(ctx, liftBill.id)).toMatchObject({ status: "returned" });
     expect(billOf(ctx, liftBill.id).status).toBe("failed");
     expect(billOf(ctx, SEED_IDS.bills.savedDraft).status).toBe("paid");
-    expect(balanceOf(ctx)).toBe(18_000_000 - 1_250_000); // the returned 5,000 is not lost
+    expect(balanceOf(ctx)).toBe(18_000_000 - 1_265_000); // the returned 5,000 is not lost
     expect(ctx.store.alerts.find((a) => a.kind === "payment_returned")).toMatchObject({ to: NOURA });
     expect(ctx.store.notices.some((n) => n.billId === liftBill.id)).toBe(false);
+  });
+});
+
+describe("per-bill pay date in a run", () => {
+  it("a bill set to pay on its due date (Sun 25 Oct) goes instant that day; quote and approval agree (promise C)", async () => {
+    const ctx = setup();
+    const { photo, einvoice, saved } = await demoRun(ctx, { submit: false }).then((d) => {
+      rejectOrDelete(ctx, d.run.id);
+      return d;
+    });
+    const payDates = { [photo.id]: "2026-10-25" };
+    const quoted = quoteBills(ctx, [einvoice.id, photo.id, saved.id], "2026-10-15", {}, payDates);
+    expect(quoted.find((q) => q.billId === photo.id)).toMatchObject({ payDate: "2026-10-25", rail: "instant", sendAt: "2026-10-25T06:00:00.000Z", arrivalDate: "2026-10-25" });
+    expect(quoted.find((q) => q.billId === saved.id)).toMatchObject({ payDate: "2026-10-15", arrivalDate: "2026-10-15" });
+
+    const { run, quotes } = createRun(ctx, { name: "Mixed dates", payDate: "2026-10-15", billIds: [einvoice.id, photo.id, saved.id], payDates }, NOURA);
+    expect(billOf(ctx, photo.id).payDate).toBe("2026-10-25");
+    expect(run.payDate).toBe("2026-10-15");
+    expect(quotes).toEqual(quoted);
+    submitRun(ctx, run.id, NOURA);
+    expect(getRun(ctx, run.id).items.find((i) => i.bill.id === photo.id)!.quote).toEqual(quoted.find((q) => q.billId === photo.id));
+    approveRun(ctx, run.id, FAISAL);
+    const payment = paymentOf(ctx, photo.id)!;
+    expect(payment).toMatchObject({ status: "scheduled", scheduledFor: "2026-10-25T06:00:00.000Z", expectedArrival: "2026-10-25" });
+    advance(ctx, "2026-10-25", "09:00");
+    expect(payment.status).toBe("settled");
+    expect(ctx.store.notices.find((n) => n.billId === photo.id)!.bodyEn).toContain("Sunday 25 October 2026");
+  });
+
+  it("checks the daily limit on each bill's own pay date", async () => {
+    const ctx = setup();
+    const { bill } = createManualBill(ctx, { supplierId: SEED_IDS.supplierA, invoiceNumber: "GOL-BIG", dueDate: "2026-10-30", total: 9_000_000 }, NOURA);
+    submitBill(ctx, bill.id, NOURA, { payDate: "2026-10-15" });
+    approveBill(ctx, bill.id, FAISAL); // 90,000 committed on 15 Oct
+    const { run, einvoice } = await demoRun(ctx, { submit: false });
+    // Moving the 46,000 bill to 25 Oct keeps 15 Oct at 90,000 + 20,700 — within 150,000.
+    rejectOrDelete(ctx, run.id);
+    const { photo, saved } = { photo: ctx.store.bills.find((b) => b.invoiceNumber === "GOL-2026-1003")!, saved: billOf(ctx, SEED_IDS.bills.savedDraft) };
+    const { run: r2 } = createRun(ctx, { name: "Split", payDate: "2026-10-15", billIds: [einvoice.id, photo.id, saved.id], payDates: { [einvoice.id]: "2026-10-25" } }, NOURA);
+    submitRun(ctx, r2.id, NOURA);
+    expect(approveRun(ctx, r2.id, REEM).run.status).toBe("approved");
+  });
+});
+
+describe("discarding a duplicate (BP-04)", () => {
+  it("only a flagged duplicate draft; hidden from the default list, listed under ?status=discarded, not owed", async () => {
+    const ctx = setup();
+    const { bill: copy } = createManualBill(ctx, { supplierId: SEED_IDS.supplierA, invoiceNumber: "GOL-2026-0917", total: 1_265_000 }, NOURA);
+    await expectCode(() => discardDuplicate(ctx, SEED_IDS.bills.savedDraft, NOURA), "not_duplicate");
+    const discarded = discardDuplicate(ctx, copy.id, NOURA);
+    expect(discarded).toMatchObject({ status: "discarded", discardedBy: NOURA });
+    expect(ctx.store.audit.at(-1)).toMatchObject({ action: "bill.discarded", actorId: NOURA, after: { duplicateOf: SEED_IDS.bills.savedDraft } });
+    expect(listBills(ctx).some((r) => r.bill.id === copy.id)).toBe(false);
+    expect(listBills(ctx, { status: "discarded" }).map((r) => r.bill.id)).toEqual([copy.id]);
+    const summary = billsSummary(ctx);
+    expect(summary.counts.discarded).toBe(1);
+    expect(summary.owedBySupplier.find((g) => g.supplierId === SEED_IDS.supplierA)?.count).toBe(1); // only the original
+    await expectCode(() => cancelBill(ctx, copy.id, NOURA), "already_discarded");
+    await expectCode(() => discardDuplicate(ctx, copy.id, NOURA), "not_draft");
+  });
+});
+
+describe("IBAN changed recently (approver warning)", () => {
+  it("bill and run views carry who changed the IBAN and when, for 30 days", async () => {
+    const ctx = setup();
+    const { run, einvoice, supplierB } = await demoRun(ctx);
+    expect(getRun(ctx, run.id).items.find((i) => i.bill.id === einvoice.id)!.bankChange).toBeUndefined();
+    requestBankChange(ctx, supplierB.id, "SA2045000000001234567001", NOURA);
+    approveBankChange(ctx, supplierB.id, REEM);
+    const expected = { changedAt: ctx.now.toISOString(), requestedBy: NOURA, requestedByName: "Noura Al-Harbi", approvedBy: REEM, approvedByName: "Reem Al-Qahtani" };
+    expect(getRun(ctx, run.id).items.find((i) => i.bill.id === einvoice.id)!.bankChange).toEqual(expected);
+    expect(getBillDetail(ctx, einvoice.id).bankChange).toEqual(expected);
+    expect(getRun(ctx, run.id).items.find((i) => i.bill.id === SEED_IDS.bills.savedDraft)!.bankChange).toBeUndefined();
+    advance(ctx, "2026-11-15", "16:11"); // 31 days later
+    expect(getBillDetail(ctx, einvoice.id).bankChange).toBeUndefined();
   });
 });
 
@@ -77,13 +153,13 @@ describe("short balance (BP-10)", () => {
   it("pays in due-date order, holds the rest to 09:00 next working day, and alerts the admin", async () => {
     const ctx = setup();
     const { run, photo, saved } = await demoRun(ctx);
-    ctx.store.accounts[0].balance = 1_500_000; // 15,000: covers the 12,500 bill (due 14 Oct), not also the 8,050 (due 25 Oct)
+    ctx.store.accounts[0].balance = 1_500_000; // 15,000: covers the 12,650 bill (due 14 Oct), not also the 8,050 (due 25 Oct)
     approveRun(ctx, run.id, FAISAL);
     expect(billOf(ctx, saved.id).status).toBe("paid");
     expect(paymentOf(ctx, photo.id)).toMatchObject({ status: "held", holdReason: "short_balance", scheduledFor: "2026-10-18T06:00:00.000Z", expectedArrival: "2026-10-18" });
     // The approval quote is what was promised on screen; the retry moves expectedArrival only.
     expect(paymentOf(ctx, photo.id)!.quote).toMatchObject({ rail: "instant", arrivalDate: "2026-10-15" });
-    expect(balanceOf(ctx)).toBe(250_000);
+    expect(balanceOf(ctx)).toBe(235_000);
     expect(ctx.store.alerts.find((a) => a.kind === "short_balance" && a.to === NOURA)?.message).toMatch(/retry on 2026-10-18 at 09:00/);
 
     // Topped up over the weekend: Sunday 09:00 both the held one and the SARIE one go.
@@ -101,7 +177,7 @@ describe("short balance (BP-10)", () => {
     const { run } = await demoRun(ctx, { payDate: "2026-10-18" });
     approveRun(ctx, run.id, FAISAL);
     expect(ctx.store.payments.filter((p) => p.runId === run.id).every((p) => p.status === "scheduled")).toBe(true);
-    ctx.store.accounts[0].balance = 5_000_000; // 50,000 < 65,550 due Sunday
+    ctx.store.accounts[0].balance = 5_000_000; // 50,000 < 66,700 due Sunday
     advance(ctx, "2026-10-16", "12:00"); // Friday: not yet
     expect(ctx.store.alerts.some((a) => a.kind === "short_balance")).toBe(false);
     advance(ctx, "2026-10-17", "10:00"); // Saturday, the day before
@@ -109,7 +185,7 @@ describe("short balance (BP-10)", () => {
     expect(alerts).toHaveLength(1);
     expect(alerts[0]).toMatchObject({ to: NOURA });
     expect(alerts[0].message).toContain("2026-10-18");
-    expect(alerts[0].message).toContain("15,550.00 SAR");
+    expect(alerts[0].message).toContain("16,700.00 SAR");
     advance(ctx, "2026-10-17", "18:00"); // no duplicate alert
     expect(ctx.store.alerts.filter((a) => a.kind === "short_balance")).toHaveLength(1);
   });
@@ -155,7 +231,7 @@ describe("limits (BP-18)", () => {
     const { bill } = createManualBill(ctx, { supplierId: SEED_IDS.supplierA, invoiceNumber: "GOL-BIG", dueDate: "2026-10-30", total: 9_000_000 }, NOURA);
     submitBill(ctx, bill.id, NOURA, { payDate: "2026-10-15" });
     approveBill(ctx, bill.id, FAISAL);
-    const { run } = await demoRun(ctx); // 65,550 more on the same day > 150,000
+    const { run } = await demoRun(ctx); // 66,700 more on the same day > 150,000
     const err = await expectCode(() => approveRun(ctx, run.id, REEM), "daily_limit");
     expect(err.httpStatus).toBe(422);
   });
@@ -191,9 +267,9 @@ describe("funding from a subwallet (BP-18)", () => {
     updateBill(ctx, photo.id, { fundingAccountId: "w_maintenance" }, NOURA);
     approveRun(ctx, run.id, FAISAL);
     expect(balanceOf(ctx, "w_maintenance")).toBe(4_000_000 - 805_000);
-    expect(balanceOf(ctx, "main")).toBe(18_000_000 - 1_250_000);
+    expect(balanceOf(ctx, "main")).toBe(18_000_000 - 1_265_000);
     const summary = billsSummary(ctx);
-    expect(summary.accounts.find((a) => a.id === "main")).toMatchObject({ scheduled: 4_500_000, available: 18_000_000 - 1_250_000 - 4_500_000 });
+    expect(summary.accounts.find((a) => a.id === "main")).toMatchObject({ scheduled: 4_600_000, available: 18_000_000 - 1_265_000 - 4_600_000 });
     expect(summary.owedBySupplier.find((g) => g.key === "sadad:901")).toMatchObject({ kind: "sadad", total: 324_055 });
     expect(paymentOf(ctx, einvoice.id)?.fundingAccountId).toBe("main");
   });
@@ -234,7 +310,7 @@ describe("maker-checker (BP-08, BP-17)", () => {
     const second = paymentOf(ctx, einvoice.id)!;
     expect(second).toMatchObject({ amount: 4_400_000, requestKey: `pay_${einvoice.id}_2`, status: "scheduled" });
     const updated = ctx.store.audit.find((e) => e.action === "bill.updated")!;
-    expect(updated).toMatchObject({ actorId: FAISAL, before: { total: 4_500_000 }, after: { total: 4_400_000, approvalRestarted: true } });
+    expect(updated).toMatchObject({ actorId: FAISAL, before: { total: 4_600_000 }, after: { total: 4_400_000, approvalRestarted: true } });
   });
 
   it("a non-material edit (invoice number) does not restart approval", async () => {

@@ -17,7 +17,7 @@ export function MobileNav() {
         <SheetTrigger render={<Button variant="ghost" size="icon" aria-label={t.nav.openMenu} />}>
           <Menu aria-hidden />
         </SheetTrigger>
-        <SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 gap-0 p-0">
+        <SheetContent side={dir === "rtl" ? "right" : "left"} className="w-72 gap-0 p-0" closeLabel={t.ui.close}>
           <div className="flex h-16 shrink-0 items-center px-6">
             <SheetTitle>
               <DarbWordmark />

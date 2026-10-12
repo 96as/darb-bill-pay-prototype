@@ -12,20 +12,14 @@ import type {
 } from "@/lib/domain/types";
 import { riyadhDate } from "@/lib/ui/format";
 import { displayStatus } from "@/lib/ui/status";
-import {
-  actingUser,
-  bankChangeGate,
-  confirmMatchGate,
-  rejectChangeGate,
-  userName,
-  withdrawChangeGate,
-  type Gate,
-} from "@/lib/ui/store-helpers";
+import { makeCtx } from "@/lib/server/context";
+import { supplierChecks } from "@/lib/server/services";
+import { actingUser, toGate, userName, type Gate } from "@/lib/ui/store-helpers";
 import { readStore } from "../../store";
 
 type Person = { name: string; nameAr: string };
 
-const isOpen = (s: DisplayStatus) => s !== "paid" && s !== "cancelled";
+const isOpen = (s: DisplayStatus) => s !== "paid" && s !== "cancelled" && s !== "discarded";
 
 function bankName(iban: string, saved?: string) {
   const bank = saudiBankFromIban(iban);
@@ -195,6 +189,7 @@ export async function loadSupplierDetail(id: string): Promise<SupplierDetailView
     .map((b) => ({ id: b.id, invoiceNumber: b.invoiceNumber, dueDate: b.dueDate, total: b.total, status: displayStatus(b, today) }))
     .sort((a, b) => (b.dueDate ?? "").localeCompare(a.dueDate ?? ""));
   const pending = s.pendingBankChange ? changeRow(store, s.pendingBankChange) : undefined;
+  const checks = supplierChecks(makeCtx(store), s, store.session.userId);
   const history = s.bankChanges
     .filter((c) => c.id !== s.pendingBankChange?.id)
     .map((c) => changeRow(store, c))
@@ -222,9 +217,10 @@ export async function loadSupplierDetail(id: string): Promise<SupplierDetailView
     bills,
     owed: owedFor(store, s, today).total,
     actingRole: actingUser(store)?.role,
-    approveChangeGate: bankChangeGate(store, s),
-    rejectChangeGate: rejectChangeGate(store, s),
-    withdrawChangeGate: withdrawChangeGate(store, s),
-    confirmMatchGate: confirmMatchGate(store, s),
+    // Same rule results as GET /api/payees/{id} → checks (lib/server/services supplierChecks).
+    approveChangeGate: toGate(checks.approveChange),
+    rejectChangeGate: toGate(checks.rejectChange),
+    withdrawChangeGate: toGate(checks.withdrawChange),
+    confirmMatchGate: toGate(checks.confirmMatch),
   };
 }

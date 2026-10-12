@@ -62,9 +62,14 @@ export interface BillDetailView {
   accounts: Pick<FundingAccount, "id" | "kind" | "name" | "nameAr" | "balance">[];
   submittedBy?: { name: string; nameAr: string };
   cancelledBy?: { name: string; nameAr: string };
+  discardedBy?: { name: string; nameAr: string };
   /** Rule results for the acting user from the service layer (getBillDetail().checks); the API re-checks. */
   submitGate: Gate;
   approvalGate: Gate;
+  /** Recent approved IBAN change of the supplier (shown to approvers before they release money). */
+  bankChange?: { changedAt: string; requester?: { name: string; nameAr: string }; approver?: { name: string; nameAr: string } };
+  /** Arrival if approved now (lib/domain/rails via the service quote), for the release confirmation. */
+  releaseArrival?: string;
   cancelGate: Gate;
   events: AuditRow[];
 }
@@ -80,7 +85,8 @@ export async function loadBillDetail(id: string): Promise<BillDetailView | null>
   const original = bill.duplicateOf ? store.bills.find((b) => b.id === bill.duplicateOf) : undefined;
   const run = bill.runId ? store.runs.find((r) => r.id === bill.runId) : undefined;
 
-  const checks = getBillDetail(makeCtx(store), bill.id).checks;
+  const detail = getBillDetail(makeCtx(store), bill.id);
+  const checks = detail.checks;
   const suggestedIban = bill.suggestedSupplier?.supplierIban;
   const events = store.audit
     .filter(
@@ -141,6 +147,15 @@ export async function loadBillDetail(id: string): Promise<BillDetailView | null>
     accounts: store.accounts.map(({ id, kind, name, nameAr, balance }) => ({ id, kind, name, nameAr, balance })),
     submittedBy: userName(store, bill.submittedBy),
     cancelledBy: userName(store, bill.cancelledBy),
+    discardedBy: userName(store, bill.discardedBy),
+    bankChange: detail.bankChange
+      ? {
+          changedAt: detail.bankChange.changedAt,
+          requester: userName(store, detail.bankChange.requestedBy),
+          approver: userName(store, detail.bankChange.approvedBy),
+        }
+      : undefined,
+    releaseArrival: detail.quote?.arrivalDate,
     submitGate: toGate(checks.submit),
     approvalGate: toGate(checks.approve),
     cancelGate: toGate(checks.cancel),

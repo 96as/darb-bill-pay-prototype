@@ -65,10 +65,10 @@ Other mock name-check IBANs: SA0405000000008800112233 → close match; SA5215000
 Bills:
 | Bill | Supplier | Invoice no. | Issue | Due | Subtotal | VAT | Total | Status |
 |---|---|---|---|---|---|---|---|---|
-| Saved earlier | A | GOL-2026-0917 | 2026-09-20 | 2026-10-14 | 10,869.57 | 1,630.43 | 12,500.00 | draft → shows Overdue |
+| Saved earlier | A | GOL-2026-0917 | 2026-09-20 | 2026-10-14 | 11,000.00 | 1,650.00 | 12,650.00 | draft → shows Overdue |
 | Paid history | A | GOL-2026-0822 | 2026-08-25 | 2026-09-24 | 6,000.00 | 900.00 | 6,900.00 | paid (2026-09-22) |
 | SADAD | National Power Utility (demo biller) / شركة الطاقة الوطنية (تجريبي), biller 901, bill no. 1002387745 | | 2026-10-05 | 2026-10-25 | | | 3,240.55 | awaiting approval |
-| E-invoice (email) | B | INV-2026-0451 | 2026-10-13 | 2026-11-12 | 39,130.43 | 5,869.57 | 45,000.00 | created in step 1 |
+| E-invoice (email) | B | INV-2026-0451 | 2026-10-13 | 2026-11-12 | 40,000.00 | 6,000.00 | 46,000.00 | created in step 1 |
 | Photo (email, OCR) | A | GOL-2026-1003 | 2026-10-10 | 2026-10-25 | 7,000.00 | 1,050.00 | 8,050.00 | created in step 1 |
 
 E-invoice UUID: `6f1c9a52-3b7e-4d21-9c88-0a4e5b2d7f13`.

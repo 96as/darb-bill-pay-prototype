@@ -39,6 +39,10 @@ describe("findDuplicate", () => {
     expect(findDuplicate({ supplierVat: "311902476500003", invoiceNumber: "INV-2026-0451" }, [makeBill({ supplierId: undefined })])).toBeNull();
   });
 
+  it("ignores discarded copies", () => {
+    expect(findDuplicate({ invoiceUuid: existing.invoiceUuid }, [makeBill({ id: "b_d", status: "discarded" })])).toBeNull();
+  });
+
   it("ignores cancelled bills and the candidate itself", () => {
     expect(findDuplicate({ invoiceUuid: existing.invoiceUuid }, [makeBill({ id: "b_c", status: "cancelled" })])).toBeNull();
     expect(findDuplicate({ id: "b_existing", invoiceUuid: existing.invoiceUuid, supplierId: "s_b", invoiceNumber: "INV-2026-0451" }, [existing])).toBeNull();

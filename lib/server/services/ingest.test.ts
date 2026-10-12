@@ -31,9 +31,9 @@ describe("ingest the fixture PDF/A-3 (promise A)", () => {
       invoiceUuid: "6f1c9a52-3b7e-4d21-9c88-0a4e5b2d7f13",
       issueDate: "2026-10-13",
       dueDate: "2026-11-12",
-      subtotal: 3_913_043,
-      vat: 586_957,
-      total: 4_500_000,
+      subtotal: 4_000_000,
+      vat: 600_000,
+      total: 4_600_000,
       needsReview: [],
       createdBy: NOURA,
       suggestedSupplier: { supplierIban: IBAN_B, supplierVat: "310387452600003", supplierEmail: "finance@coolbreeze-hvac.example" },
@@ -69,7 +69,7 @@ describe("ingest the fixture PDF/A-3 (promise A)", () => {
     expect(bill.file?.mime).toBe("application/xml");
     expect(bill.supplierName).toBe(name);
     expect(bill.supplierNameAr).toBe(nameAr);
-    expect(bill.total).toBe(4_500_000);
+    expect(bill.total).toBe(4_600_000);
     expect(bill.needsReview).toEqual([]);
   });
 
@@ -187,7 +187,7 @@ describe("duplicates (BP-04)", () => {
   it("flags the saved bill's PDF uploaded again by supplier + invoice number (no UUID in a plain PDF)", async () => {
     const ctx = setup();
     const { bill, duplicate } = await ingestFile(ctx, { bytes: await fixture(FIXTURE_SAVED_PDF), filename: "GOL-2026-0917-green-oasis.pdf", source: "upload", actorId: NOURA });
-    expect(bill).toMatchObject({ extraction: "ocr", supplierId: SEED_IDS.supplierA, invoiceNumber: "GOL-2026-0917", total: 1_250_000, needsReview: [] });
+    expect(bill).toMatchObject({ extraction: "ocr", supplierId: SEED_IDS.supplierA, invoiceNumber: "GOL-2026-0917", total: 1_265_000, needsReview: [] });
     expect(bill.invoiceUuid).toBeUndefined();
     expect(duplicate).toEqual({ billId: SEED_IDS.bills.savedDraft, reason: "supplier_invoice_number" });
     expect(bill).toMatchObject({ duplicateOf: SEED_IDS.bills.savedDraft, duplicateReason: "supplier_invoice_number" });
@@ -195,7 +195,7 @@ describe("duplicates (BP-04)", () => {
 
   it("flags a manual bill with the same supplier and invoice number", () => {
     const ctx = setup();
-    const { bill } = createManualBill(ctx, { supplierId: SEED_IDS.supplierA, invoiceNumber: "gol 2026 0917", total: 1_250_000 }, NOURA);
+    const { bill } = createManualBill(ctx, { supplierId: SEED_IDS.supplierA, invoiceNumber: "gol 2026 0917", total: 1_265_000 }, NOURA);
     expect(bill).toMatchObject({ duplicateOf: SEED_IDS.bills.savedDraft, duplicateReason: "supplier_invoice_number" });
   });
 });

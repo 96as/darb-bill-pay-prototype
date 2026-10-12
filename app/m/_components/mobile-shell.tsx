@@ -8,6 +8,7 @@ import { Check } from "lucide-react";
 import { InitialAvatar } from "@/components/darb/initial-avatar";
 import { ApiError, postJSON } from "@/components/darb/payment-actions";
 import { PortalContainerContext } from "@/components/darb/portal-container";
+import type { GateLike, Unblock } from "@/components/darb/gated-button";
 import type { DemoUser } from "@/components/darb/shell/demo-state";
 import { LangToggle } from "@/components/darb/shell/lang-toggle";
 import { LANG_COOKIE, LANG_QUERY_PARAM, type Lang } from "@/lib/i18n/config";
@@ -20,6 +21,35 @@ interface MobileDemoValue {
   users: DemoUser[];
   actingUser: DemoUser;
   setActingUser: (userId: string) => void;
+  /** Opens the "Switch user" sheet (the unblock action for role and maker-checker reasons). */
+  openSwitcher: () => void;
+}
+
+/** Reason codes another user can get past (mirrors components/darb/use-unblock.ts, which needs the desktop shell). */
+const SWITCH_USER = new Set([
+  "not_approver",
+  "creator_cannot_approve",
+  "editor_cannot_approve",
+  "submitter_cannot_approve",
+  "supplier_creator_cannot_approve_first_payment",
+  "iban_changer_cannot_approve_first_payment",
+  "run_creator_cannot_approve",
+  "run_editor_cannot_approve",
+  "run_submitter_cannot_approve",
+]);
+
+/** Mobile version of useUnblock: the action that unblocks a denied approval, reachable from this screen. */
+export function useMobileUnblock() {
+  const { t } = useI18n();
+  const { openSwitcher } = useMobileDemo();
+  return (gate: GateLike | undefined, supplierId?: string): Unblock | undefined => {
+    if (!gate || gate.ok || !gate.code) return undefined;
+    if (SWITCH_USER.has(gate.code)) return { label: t.shell.switchUser, onClick: openSwitcher };
+    if ((gate.code === "iban_change_pending" || gate.code === "name_check_unconfirmed") && supplierId) {
+      return { label: t.billDetail.supplier.view, href: `/bills/suppliers/${encodeURIComponent(supplierId)}` };
+    }
+    return undefined;
+  };
 }
 
 const MobileDemoContext = createContext<MobileDemoValue | null>(null);
@@ -84,7 +114,12 @@ export function MobileShell({
   );
 
   const value = useMemo<MobileDemoValue>(
-    () => ({ users, actingUser: users.find((u) => u.id === acting) ?? users[0], setActingUser }),
+    () => ({
+      users,
+      actingUser: users.find((u) => u.id === acting) ?? users[0],
+      setActingUser,
+      openSwitcher: () => setSheetOpen(true),
+    }),
     [users, acting, setActingUser],
   );
   const nameOf = (u: DemoUser) => (lang === "ar" ? u.nameAr : u.name);

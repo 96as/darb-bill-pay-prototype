@@ -13,6 +13,7 @@ const STATUS_STYLES: Record<DisplayStatus, string> = {
   scheduled: "bg-information text-information-foreground",
   draft: "bg-muted text-muted-foreground",
   cancelled: "bg-muted text-muted-foreground",
+  discarded: "bg-muted text-muted-foreground line-through decoration-muted-foreground/40",
 };
 
 export function StatusBadge({ status, className }: { status: DisplayStatus; className?: string }) {

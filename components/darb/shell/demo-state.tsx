@@ -70,11 +70,13 @@ export function DemoStateProvider({ initial, children }: { initial: DemoShellDat
   useEffect(() => setNow(initial.now), [initial.now]);
 
   const call = useCallback(
-    async (path: string, body: Record<string, unknown>, revert: () => void, success: string) => {
+    async (path: string, body: Record<string, unknown>, revert: () => void, success: string, navigateTo?: string) => {
       setPending(true);
       try {
         await api.post(path, body);
         toast.success(success);
+        // Reset goes back to /bills so it never lands on a page that no longer exists (e.g. /bills/b_3).
+        if (navigateTo) router.push(navigateTo);
         router.refresh();
       } catch (error) {
         if (error instanceof ApiError && error.code === "not_available") {
@@ -121,19 +123,9 @@ export function DemoStateProvider({ initial, children }: { initial: DemoShellDat
   );
 
   const resetDemo = useCallback(() => {
-    const previous = { actingUserId, now };
-    setActingUserId(initial.actingUserId);
-    setNow(initial.now);
-    void call(
-      "/api/demo/reset",
-      {},
-      () => {
-        setActingUserId(previous.actingUserId);
-        setNow(previous.now);
-      },
-      t.demo.resetDone,
-    );
-  }, [actingUserId, call, initial.actingUserId, initial.now, now, t.demo.resetDone]);
+    // No optimistic change: the seed decides the user and clock; the refresh brings them in.
+    void call("/api/demo/reset", {}, () => {}, t.demo.resetDone, "/bills");
+  }, [call, t.demo.resetDone]);
 
   const setLang = useCallback(
     (next: Lang) => {

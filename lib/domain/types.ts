@@ -107,7 +107,9 @@ export type BillStatus =
   | "scheduled"
   | "paid"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  /** A flagged duplicate the preparer threw away ("Discard this copy"); hidden from the default bills list. */
+  | "discarded";
 
 /** Status shown in the UI: Overdue replaces draft/awaiting/scheduled/failed when unpaid past due. */
 export type DisplayStatus = BillStatus | "overdue";
@@ -234,6 +236,8 @@ export interface Bill {
   approvals: Approval[];
   cancelledBy?: string;
   cancelledAt?: ISODateTime;
+  discardedBy?: string;
+  discardedAt?: ISODateTime;
 }
 
 // ---------- Rails and payments (PL-04, BP-09, BP-10) ----------

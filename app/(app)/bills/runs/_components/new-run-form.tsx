@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CircleAlert, Info, ListChecks, Send, TriangleAlert, Wallet } from "lucide-react";
+import { ArrowLeft, CalendarClock, CircleAlert, Info, ListChecks, Send, TriangleAlert, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { Amount } from "@/components/darb/amount";
+import { DateInput } from "@/components/darb/date-input";
 import { EmptyState } from "@/components/darb/empty-state";
 import { PageHeader } from "@/components/darb/page-header";
 import { Panel, PanelHeader } from "@/components/darb/panel";
@@ -21,13 +23,14 @@ import { previewQuote } from "@/components/darb/payment-rules";
 import { SupplierName } from "@/components/darb/supplier-name";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { checkDaily, checkPerPayment } from "@/lib/domain/limits";
 import { formatSAR } from "@/lib/domain/money";
-import { isISODate, weekdayName } from "@/lib/domain/time";
+import { daysEarly, isISODate, weekdayName } from "@/lib/domain/time";
 import type { FundingAccount, PaymentRun, RailQuote } from "@/lib/domain/types";
 import { fmt, plural } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
@@ -51,9 +54,12 @@ export function NewRunForm({ view }: { view: NewRunView }) {
   const [payDate, setPayDate] = useState(view.today);
   const [name, setName] = useState(() => defaultName(view.today));
   const [nameTouched, setNameTouched] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(view.preselected.length > 0 ? view.preselected : addable.map((c) => c.bill.id)),
-  );
+  // Nothing is ticked unless ?bills= preselects some.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(view.preselected));
+  /** Bills paid on their own due date instead of the run's pay date ("Pay on due date"). */
+  const [onDueDate, setOnDueDate] = useState<Set<string>>(() => new Set());
+  /** Locks the form from the first POST until the run page has loaded (no double submit). */
+  const [leaving, setLeaving] = useState(false);
   const [funding, setFunding] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       view.candidates.map((c) => [
@@ -66,17 +72,33 @@ export function NewRunForm({ view }: { view: NewRunView }) {
   const validPayDate = isISODate(payDate) && payDate >= view.today;
   const effectiveDate = validPayDate ? payDate : view.today;
 
-  // Promise C: rail + arrival per bill from lib/domain/rails.ts, at the demo clock.
+  /** Days before its due date a bill would be paid on the run's date (positive = early). */
+  const earlyBy = (c: CandidateBill) => (c.bill.dueDate ? daysEarly(effectiveDate, c.bill.dueDate) : 0);
+  /** The bill's own pay date: its due date when "Pay on due date" is on, else the run's date. */
+  const billPayDate = (c: CandidateBill) =>
+    onDueDate.has(c.bill.id) && c.bill.dueDate && c.bill.dueDate > effectiveDate ? c.bill.dueDate : effectiveDate;
+
+  // Promise C: rail + arrival per bill from lib/domain/rails.ts, at the demo clock, with the bill's own date.
   const quotes = useMemo<Record<string, RailQuote>>(
-    () => Object.fromEntries(view.candidates.map((c) => [c.bill.id, previewQuote(c.bill, effectiveDate, view.now)])),
-    [view.candidates, view.now, effectiveDate],
+    () =>
+      Object.fromEntries(
+        view.candidates.map((c) => {
+          const own = onDueDate.has(c.bill.id) && c.bill.dueDate && c.bill.dueDate > effectiveDate ? c.bill.dueDate : effectiveDate;
+          return [c.bill.id, previewQuote(c.bill, own, view.now)];
+        }),
+      ),
+    [view.candidates, view.now, effectiveDate, onDueDate],
   );
 
   const chosen = addable.filter((c) => selected.has(c.bill.id));
   const total = chosen.reduce((sum, c) => sum + c.bill.total, 0);
   const overLimit = chosen.filter((c) => !checkPerPayment(c.bill.total, view.limits).ok);
+  // Daily limit per pay date (a bill paid on its due date counts on that day).
+  const byDate = new Map<string, number>();
+  for (const c of chosen) byDate.set(billPayDate(c), (byDate.get(billPayDate(c)) ?? 0) + c.bill.total);
   const committed = view.committedByDate[effectiveDate] ?? 0;
-  const daily = checkDaily(committed, total, view.limits);
+  const runDayTotal = byDate.get(effectiveDate) ?? 0;
+  const overDaily = [...byDate.entries()].filter(([day, sum]) => !checkDaily(view.committedByDate[day] ?? 0, sum, view.limits).ok);
   const accountsAfter = view.accounts.map((account) => {
     const scheduled = view.scheduledByAccount[account.id] ?? 0;
     const thisRun = chosen.filter((c) => funding[c.bill.id] === account.id).reduce((sum, c) => sum + c.bill.total, 0);
@@ -84,7 +106,7 @@ export function NewRunForm({ view }: { view: NewRunView }) {
   });
 
   const problem = !validPayDate ? n.payDatePast : !name.trim() ? n.needName : chosen.length === 0 ? n.pickOne : null;
-  const canSave = !problem && busy === null;
+  const canSave = !problem && busy === null && !leaving;
   const canSubmit = canSave && overLimit.length === 0;
 
   const allChecked = addable.length > 0 && chosen.length === addable.length;
@@ -105,25 +127,47 @@ export function NewRunForm({ view }: { view: NewRunView }) {
   }
 
   async function save(submit: boolean) {
+    if (leaving) return;
+    setLeaving(true);
     const key = submit ? "submit" : "save";
+    const payDates = Object.fromEntries(
+      chosen.filter((c) => billPayDate(c) !== effectiveDate).map((c) => [c.bill.id, billPayDate(c)]),
+    );
     const body = {
       name: name.trim(),
       payDate,
       billIds: chosen.map((c) => c.bill.id),
       funding: Object.fromEntries(chosen.map((c) => [c.bill.id, funding[c.bill.id]])),
+      ...(Object.keys(payDates).length > 0 ? { payDates } : {}),
     };
-    const created = await run<{ run: PaymentRun }>(key, "/api/payment-runs", body, {
-      refresh: false,
-      success: submit ? undefined : n.savedToast,
-    });
-    if (!created?.run) return;
-    if (submit) {
-      await run(key, `/api/payment-runs/${encodeURIComponent(created.run.id)}/submit`, {}, {
-        refresh: false,
-        success: n.submittedToast,
-      });
+    const created = await run<{ run: PaymentRun }>(key, "/api/payment-runs", body, { refresh: false });
+    if (!created?.run) {
+      setLeaving(false);
+      return;
     }
+    let ok = true;
+    if (submit) {
+      ok = (await run(key, `/api/payment-runs/${encodeURIComponent(created.run.id)}/submit`, {}, { refresh: false })) !== undefined;
+    }
+    // Await the POSTs, then navigate; the toast comes from the global Toaster, which survives the
+    // navigation. The form stays locked until this page unmounts, so a slow load can't create a second run.
     router.push(`/bills/runs/${encodeURIComponent(created.run.id)}`);
+    if (ok) toast.success(submit ? n.submittedToast : n.savedToast);
+  }
+
+  function selectAll() {
+    setSelected(new Set(addable.map((c) => c.bill.id)));
+  }
+  function selectDueBefore() {
+    setSelected(new Set(addable.filter((c) => c.bill.dueDate && c.bill.dueDate <= effectiveDate).map((c) => c.bill.id)));
+  }
+  function togglePayOnDue(id: string, on: boolean) {
+    setOnDueDate((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   }
 
   const accountName = (a: FundingAccount) => (lang === "ar" ? a.nameAr : a.name);
@@ -164,14 +208,12 @@ export function NewRunForm({ view }: { view: NewRunView }) {
               <span className="font-normal text-muted-foreground">· {weekdayName(payDate, lang)}</span>
             ) : null}
           </Label>
-          <Input
+          <DateInput
             id="run-pay-date"
-            type="date"
             min={view.today}
             value={payDate}
-            onChange={(e) => changePayDate(e.target.value)}
-            className="h-9 bg-background"
-            aria-invalid={!validPayDate || undefined}
+            onChange={changePayDate}
+            className="bg-background"
             aria-describedby="run-pay-date-hint"
           />
           <p id="run-pay-date-hint" className={cn("text-xs", validPayDate ? "text-muted-foreground" : "text-error-foreground")}>
@@ -186,6 +228,23 @@ export function NewRunForm({ view }: { view: NewRunView }) {
           title={n.billsTitle}
           description={
             addable.length > 0 ? fmt(n.selected, { count: chosen.length, total: addable.length }) : n.billsDescription
+          }
+          action={
+            addable.length > 0 ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button variant="pill" size="sm" className="px-3" onClick={selectAll}>
+                  {n.selectAllAction}
+                </Button>
+                <Button variant="pill" size="sm" className="px-3" onClick={selectDueBefore}>
+                  {n.selectDueBefore}
+                </Button>
+                {chosen.length > 0 ? (
+                  <Button variant="ghost" size="sm" className="px-2 text-muted-foreground" onClick={() => setSelected(new Set())}>
+                    {n.clearSelection}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null
           }
         />
         {view.candidates.length === 0 ? (
@@ -209,10 +268,12 @@ export function NewRunForm({ view }: { view: NewRunView }) {
                 <TableHead className={head}>
                   {n.columns.invoiceNo} · {n.columns.dueDate}
                 </TableHead>
-                <TableHead className={cn(head, "text-end")}>{n.columns.amount}</TableHead>
-                <TableHead className={head}>{n.columns.fundFrom}</TableHead>
-                <TableHead className={head}>{n.columns.rail}</TableHead>
-                <TableHead className={head}>{n.columns.arrival}</TableHead>
+                <TableHead className={cn(head, "text-end")}>
+                  {n.columns.amount} · {n.columns.fundFrom}
+                </TableHead>
+                <TableHead className={head}>
+                  {n.columns.rail} · {n.columns.arrival}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -221,7 +282,10 @@ export function NewRunForm({ view }: { view: NewRunView }) {
                   key={c.bill.id}
                   candidate={c}
                   quote={quotes[c.bill.id]}
-                  payDate={effectiveDate}
+                  payDate={billPayDate(c)}
+                  early={earlyBy(c)}
+                  payOnDue={onDueDate.has(c.bill.id)}
+                  onPayOnDueChange={(on) => togglePayOnDue(c.bill.id, on)}
                   today={view.today}
                   checked={selected.has(c.bill.id) && !c.gate}
                   onCheckedChange={(on) => toggle(c.bill.id, on)}
@@ -234,7 +298,7 @@ export function NewRunForm({ view }: { view: NewRunView }) {
                       onValueChange={(value) => value && setFunding((f) => ({ ...f, [c.bill.id]: String(value) }))}
                       disabled={Boolean(c.gate)}
                     >
-                      <SelectTrigger size="sm" className="w-40 bg-background" aria-label={n.columns.fundFrom}>
+                      <SelectTrigger size="sm" className="ms-auto w-40 bg-background" aria-label={n.columns.fundFrom}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={false} align="start">
@@ -257,7 +321,7 @@ export function NewRunForm({ view }: { view: NewRunView }) {
                 <TableCell className={cn(edges, "py-3 text-end")}>
                   <Amount value={total} />
                 </TableCell>
-                <TableCell className={edges} colSpan={3} />
+                <TableCell className={edges} />
               </TableRow>
             </TableFooter>
           </Table>
@@ -297,24 +361,24 @@ export function NewRunForm({ view }: { view: NewRunView }) {
             </div>
             <dd className="text-xs text-muted-foreground">
               {fmt(n.dailyUsed, {
-                used: formatSAR(committed + total, lang),
+                used: formatSAR(committed + runDayTotal, lang),
                 limit: formatSAR(view.limits.daily, lang),
                 date: formatPlainDate(effectiveDate, lang),
               })}
             </dd>
           </dl>
 
-          {overLimit.map((c) => (
-            <Warning key={c.bill.id} tone="error">
+          {overLimit.map((c, i) => (
+            <Warning key={c.bill.id} tone="error" id={i === 0 ? "run-form-limits" : undefined}>
               {billReference(c.bill, t)}:{" "}
               {fmt(n.perPaymentOver, { amount: formatSAR(c.bill.total, lang), limit: formatSAR(view.limits.perPayment, lang) })}
             </Warning>
           ))}
-          {!daily.ok ? (
-            <Warning tone="warning">
-              {fmt(n.dailyOver, { date: formatPlainDate(effectiveDate, lang), limit: formatSAR(view.limits.daily, lang) })}
+          {overDaily.map(([day]) => (
+            <Warning key={day} tone="warning">
+              {fmt(n.dailyOver, { date: formatPlainDate(day, lang), limit: formatSAR(view.limits.daily, lang) })}
             </Warning>
-          ) : null}
+          ))}
 
           <div className="mt-auto space-y-3">
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -322,15 +386,31 @@ export function NewRunForm({ view }: { view: NewRunView }) {
               <span>{n.independence}</span>
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" size="lg" disabled={!canSave} onClick={() => save(false)} title={problem ?? undefined}>
+              <Button
+                variant="outline"
+                size="lg"
+                disabled={!canSave}
+                onClick={() => save(false)}
+                aria-describedby={problem ? "run-form-problem" : undefined}
+              >
                 {n.saveDraft}
               </Button>
-              <Button size="lg" disabled={!canSubmit} onClick={() => save(true)} title={problem ?? undefined}>
+              <Button
+                size="lg"
+                disabled={!canSubmit}
+                onClick={() => save(true)}
+                aria-describedby={problem ? "run-form-problem" : overLimit.length > 0 ? "run-form-limits" : undefined}
+              >
                 <Send aria-hidden className="rtl:-scale-x-100" />
                 {n.submit}
               </Button>
             </div>
-            {problem && busy === null ? <p className="text-xs text-muted-foreground">{problem}</p> : null}
+            {problem && busy === null ? (
+              <p id="run-form-problem" className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info className="mt-px size-3.5 shrink-0" aria-hidden />
+                {problem}
+              </p>
+            ) : null}
           </div>
         </Panel>
       </div>
@@ -340,10 +420,15 @@ export function NewRunForm({ view }: { view: NewRunView }) {
   );
 }
 
+const EARLY_WARNING_DAYS = 3;
+
 function CandidateRow({
   candidate,
   quote,
   payDate,
+  early,
+  payOnDue,
+  onPayOnDueChange,
   today,
   checked,
   onCheckedChange,
@@ -353,7 +438,12 @@ function CandidateRow({
 }: {
   candidate: CandidateBill;
   quote: RailQuote;
+  /** The bill's own pay date (run date, or its due date with "Pay on due date"). */
   payDate: string;
+  /** Days early on the run's pay date. */
+  early: number;
+  payOnDue: boolean;
+  onPayOnDueChange: (on: boolean) => void;
   today: string;
   checked: boolean;
   onCheckedChange: (on: boolean) => void;
@@ -368,6 +458,12 @@ function CandidateRow({
   const gateText = gate
     ? permissionMessage(gate, t, lang, { bills: [bill], suppliers: supplier ? [supplier] : [] })
     : null;
+  const nameEn = supplier?.nameEn ?? bill.sadad?.billerName ?? bill.supplierName;
+  const nameAr = supplier?.nameAr ?? bill.sadad?.billerNameAr ?? bill.supplierNameAr;
+  const name = lang === "ar" && nameAr ? nameAr : nameEn;
+  const other = lang === "ar" ? nameEn : nameAr;
+  const showEarly = !!bill.dueDate && early > EARLY_WARNING_DAYS;
+  const switchId = `pay-on-due-${bill.id}`;
 
   return (
     <TableRow data-bill-id={bill.id} data-state={checked ? "selected" : undefined} className="data-[state=selected]:bg-primary-surface/40">
@@ -377,43 +473,68 @@ function CandidateRow({
           disabled={Boolean(gate)}
           onCheckedChange={(on) => onCheckedChange(on)}
           aria-label={fmt(n.selectBill, { invoice: billReference(bill, t) })}
+          aria-describedby={gateText ? `gate-${bill.id}` : undefined}
           className="mt-0.5"
         />
       </TableCell>
-      <TableCell className={cn(cell, "w-full max-w-0 min-w-44")}>
-        <SupplierName
-          nameEn={supplier?.nameEn ?? bill.sadad?.billerName ?? bill.supplierName}
-          nameAr={supplier?.nameAr ?? bill.sadad?.billerNameAr ?? bill.supplierNameAr}
-          className={gate ? "opacity-60" : undefined}
-        />
+      <TableCell className={cn(cell, "w-full max-w-0 min-w-40")}>
+        {/* One line in the table; the other-language name is in the tooltip. */}
+        <div className={cn("truncate font-medium", gate && "opacity-60")} title={other ? `${name} — ${other}` : name}>
+          {name}
+        </div>
         {gateText ? (
-          <p className="mt-1.5 flex items-start gap-1.5 text-xs whitespace-normal text-warning-foreground">
+          <p id={`gate-${bill.id}`} className="mt-1.5 flex items-start gap-1.5 text-xs whitespace-normal text-warning-foreground">
             <TriangleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-            <span>{gateText}</span>
+            <span>
+              {gateText}
+              {supplier ? (
+                <>
+                  {" "}
+                  <Link
+                    href={`/bills/suppliers/${encodeURIComponent(supplier.id)}`}
+                    className="font-medium whitespace-nowrap text-primary hover:underline"
+                  >
+                    {t.billDetail.supplier.view}
+                  </Link>
+                </>
+              ) : null}
+            </span>
           </p>
         ) : null}
       </TableCell>
-      <TableCell className={cn(cell, "tabular-nums", gate && "opacity-60")}>
-        <div dir="ltr" className="w-fit">{bill.sadad?.billNumber ?? bill.invoiceNumber}</div>
-        <div className={cn("text-xs", overdue ? "text-error-foreground" : "text-muted-foreground")}>
+      <TableCell className={cn(cell, "tabular-nums")}>
+        <div dir="ltr" className={cn("w-fit", gate && "opacity-60")}>{bill.sadad?.billNumber ?? bill.invoiceNumber}</div>
+        <div className={cn("text-xs", overdue ? "text-error-foreground" : "text-muted-foreground", gate && "opacity-60")}>
           {bill.sadad ? `${fmt(t.payments.biller, { code: bill.sadad.billerCode })} · ` : null}
           {bill.dueDate ? formatPlainDate(bill.dueDate, lang) : "—"}
         </div>
+        {showEarly && !gate ? (
+          <div className="mt-1.5 max-w-52 space-y-1.5 whitespace-normal">
+            {!payOnDue ? (
+              <p className="flex items-start gap-1 text-xs text-warning-foreground">
+                <CalendarClock className="mt-px size-3.5 shrink-0" aria-hidden />
+                <span>{plural(lang, n.payingEarly, early, { date: formatPlainDate(bill.dueDate!, lang) })}</span>
+              </p>
+            ) : null}
+            <label htmlFor={switchId} className="flex cursor-pointer items-center gap-2 text-xs">
+              <Switch id={switchId} size="sm" checked={payOnDue} onCheckedChange={(on) => onPayOnDueChange(on)} />
+              <span>{payOnDue ? fmt(n.paysOn, { date: formatPlainDate(payDate, lang) }) : n.payOnDueDate}</span>
+            </label>
+          </div>
+        ) : null}
       </TableCell>
-      <TableCell className={cn(cell, "text-end font-medium", gate && "opacity-60")}>
-        <Amount value={bill.total} />
+      <TableCell className={cn(cell, "text-end")}>
+        <Amount value={bill.total} className={cn("font-medium", gate && "opacity-60")} />
         {overLimit ? (
-          <p className="mt-1 text-xs font-normal whitespace-normal text-error-foreground">
+          <p className="mt-1 text-xs whitespace-normal text-error-foreground">
             {fmt(n.perPaymentOver, { amount: formatSAR(bill.total, lang), limit: formatSAR(perPaymentLimit, lang) })}
           </p>
         ) : null}
+        <div className="mt-1.5 flex justify-end">{fundingSelect}</div>
       </TableCell>
-      <TableCell className={cn(cell, "py-2.5")}>{fundingSelect}</TableCell>
-      <TableCell className={cn(cell, gate && "opacity-60")}>
+      <TableCell className={cn(cell, "w-52 min-w-44 whitespace-normal", gate && "opacity-60")}>
         <RailChip rail={quote.rail} />
-      </TableCell>
-      <TableCell className={cn(cell, "w-48 min-w-40 whitespace-normal", gate && "opacity-60")}>
-        <ExpectedArrival quote={quote} payDate={payDate} />
+        <ExpectedArrival quote={quote} payDate={payDate} className="mt-1.5" />
       </TableCell>
     </TableRow>
   );
@@ -483,10 +604,11 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-function Warning({ tone, children }: { tone: "warning" | "error"; children: React.ReactNode }) {
+function Warning({ tone, id, children }: { tone: "warning" | "error"; id?: string; children: React.ReactNode }) {
   const Icon = tone === "error" ? CircleAlert : TriangleAlert;
   return (
     <p
+      id={id}
       role="status"
       className={cn(
         "flex items-start gap-2 rounded-lg px-3 py-2 text-xs",

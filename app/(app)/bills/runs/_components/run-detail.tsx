@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Collapsible } from "@base-ui/react/collapsible";
 import { ArrowLeft, ChevronDown, Info, Send, Smartphone } from "lucide-react";
 import { Amount } from "@/components/darb/amount";
+import { ApprovalNotices } from "@/components/darb/approval-notices";
+import { ConfirmRelease, earliestArrival } from "@/components/darb/confirm-release";
+import { GatedButton, GateReason } from "@/components/darb/gated-button";
+import { useUnblock } from "@/components/darb/use-unblock";
 import { ExpectedArrival } from "@/components/darb/expected-arrival";
 import { InvoiceThumb } from "@/components/darb/invoice-preview";
 import { PageHeader } from "@/components/darb/page-header";
@@ -66,6 +70,12 @@ export function RunDetail({ view }: { view: RunDetailView }) {
     hint && !hint.ok
       ? permissionMessage(hint, t, lang, { bills: view.approval.bills, suppliers: view.approval.suppliers })
       : null;
+  const unblockFor = useUnblock();
+  const deniedBill = hint && !hint.ok && hint.billId ? view.items.find((i) => i.bill.id === hint.billId)?.bill : undefined;
+  const unblock = hint && !hint.ok ? unblockFor(hint, { billId: deniedBill?.id, supplierId: deniedBill?.supplierId }) : undefined;
+  const reasonId = "run-approve-reason";
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const active = view.items.filter((i) => i.bill.status !== "cancelled");
   const fundingIds = [...new Set(view.items.map((i) => i.payment?.fundingAccountId ?? i.bill.fundingAccountId))];
   const lastApproval = run.approvals.at(-1);
   const withPayments = view.items.filter((i) => i.payment);
@@ -120,26 +130,42 @@ export function RunDetail({ view }: { view: RunDetailView }) {
                 <>
                   <RejectButton
                     disabled={!(hint && rejectHint(hint).ok) || busy !== null}
+                    describedBy={hint && !rejectHint(hint).ok ? reasonId : undefined}
                     onConfirm={() => call("reject", `${runPath}/reject`, {}, { success: d.rejectedToast })}
                   />
-                  <Button
+                  <GatedButton
+                    gate={hint ?? { ok: true }}
+                    showReason={false}
+                    describedBy={reasonId}
+                    pending={busy !== null}
                     size="lg"
                     className="px-4"
-                    disabled={!hint?.ok || busy !== null}
-                    onClick={() => call("approve", `${runPath}/approve`, {}, { success: d.approvedToast })}
+                    onClick={() => setConfirmOpen(true)}
                   >
                     {d.approve} · {formatSAR(view.total, lang)}
-                  </Button>
+                  </GatedButton>
                 </>
               ) : null}
             </>
           }
         />
         {hintText ? (
-          <p className="flex items-start gap-2 text-sm text-muted-foreground" role="note">
-            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{hintText}</span>
-          </p>
+          // One reason for Approve and Reject, with the action that unblocks it (switch user, open supplier…).
+          <GateReason id={reasonId} gate={{ ok: false, message: hintText }} unblock={unblock} className="text-sm" />
+        ) : null}
+        {awaiting ? (
+          <ConfirmRelease
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            total={view.total}
+            count={active.length}
+            earliestArrival={earliestArrival(active.map((i) => i.quote))}
+            pending={busy === "approve"}
+            onConfirm={async () => {
+              const done = await call("approve", `${runPath}/approve`, {}, { success: d.approvedToast });
+              if (done) setConfirmOpen(false);
+            }}
+          />
         ) : null}
       </div>
 
@@ -174,8 +200,9 @@ export function RunDetail({ view }: { view: RunDetailView }) {
               <TableHead className={head}>{d.columns.invoice}</TableHead>
               <TableHead className={head}>{d.columns.supplier}</TableHead>
               <TableHead className={cn(head, "text-end")}>{d.columns.amount}</TableHead>
-              <TableHead className={head}>{d.columns.rail}</TableHead>
-              <TableHead className={head}>{d.columns.arrival}</TableHead>
+              <TableHead className={head}>
+                {d.columns.rail} · {d.columns.arrival}
+              </TableHead>
               <TableHead className={head}>
                 {d.columns.payment} · {d.columns.transferRef}
               </TableHead>
@@ -196,11 +223,8 @@ export function RunDetail({ view }: { view: RunDetailView }) {
                     </Link>
                   </div>
                 </TableCell>
-                <TableCell className={cn(cell, "w-full max-w-0 min-w-44")}>
-                  <SupplierName
-                    nameEn={item.supplier?.nameEn ?? item.bill.sadad?.billerName ?? item.bill.supplierName}
-                    nameAr={item.supplier?.nameAr ?? item.bill.sadad?.billerNameAr ?? item.bill.supplierNameAr}
-                  />
+                <TableCell className={cn(cell, "w-full max-w-0 min-w-40")}>
+                  <SupplierCell item={item} />
                 </TableCell>
                 <TableCell className={cn(cell, "text-end")}>
                   <Amount value={item.bill.total} className="font-medium" />
@@ -208,11 +232,9 @@ export function RunDetail({ view }: { view: RunDetailView }) {
                     {accountName(item.payment?.fundingAccountId ?? item.bill.fundingAccountId)}
                   </div>
                 </TableCell>
-                <TableCell className={cell}>
+                <TableCell className={cn(cell, "w-48 min-w-40 whitespace-normal")}>
                   <RailChip rail={item.quote.rail} />
-                </TableCell>
-                <TableCell className={cn(cell, "w-44 min-w-36 whitespace-normal")}>
-                  <ExpectedArrival quote={item.quote} payDate={run.payDate} />
+                  <ExpectedArrival quote={item.quote} payDate={item.payDate} className="mt-1.5" />
                 </TableCell>
                 <TableCell className={cell}>
                   {item.payment ? (
@@ -237,7 +259,7 @@ export function RunDetail({ view }: { view: RunDetailView }) {
               <TableCell className={cn(edges, "py-3 text-end")}>
                 <Amount value={view.total} />
               </TableCell>
-              <TableCell className={edges} colSpan={3} />
+              <TableCell className={edges} colSpan={2} />
             </TableRow>
           </TableFooter>
         </Table>
@@ -278,14 +300,44 @@ function MetaCard({ label, value, sub, muted }: { label: string; value?: string;
   );
 }
 
-function RejectButton({ disabled, onConfirm }: { disabled: boolean; onConfirm: () => void }) {
+/** Supplier on one line (the other-language name in the tooltip) + bank-change / first-payment notices. */
+function SupplierCell({ item }: { item: RunBillItem }) {
+  const { lang } = useI18n();
+  const nameEn = item.supplier?.nameEn ?? item.bill.sadad?.billerName ?? item.bill.supplierName;
+  const nameAr = item.supplier?.nameAr ?? item.bill.sadad?.billerNameAr ?? item.bill.supplierNameAr;
+  const name = lang === "ar" && nameAr ? nameAr : nameEn;
+  const other = lang === "ar" ? nameEn : nameAr;
+  const released = Boolean(item.payment);
+  return (
+    <>
+      <div className="truncate font-medium" title={other ? `${name} — ${other}` : name}>
+        {name}
+      </div>
+      {!released ? <ApprovalNotices data={item} className="mt-1.5" /> : null}
+    </>
+  );
+}
+
+function RejectButton({
+  disabled,
+  describedBy,
+  onConfirm,
+}: {
+  disabled: boolean;
+  describedBy?: string;
+  onConfirm: () => void;
+}) {
   const { t } = useI18n();
   const d = t.payments.detail;
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {/* `disabled` goes on the Trigger: Base UI overrides it on the rendered element. */}
-      <DialogTrigger disabled={disabled} render={<Button variant="outline" size="lg" className="px-4" />}>
+      <DialogTrigger
+        disabled={disabled}
+        aria-describedby={describedBy}
+        render={<Button variant="outline" size="lg" className="px-4" />}
+      >
         {d.reject}
       </DialogTrigger>
       <DialogContent>

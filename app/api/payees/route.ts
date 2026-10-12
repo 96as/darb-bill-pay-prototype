@@ -1,6 +1,6 @@
 // GET /api/payees → {suppliers: SupplierRow[]}  ·  POST /api/payees → {supplier} (IBAN checksum, name check, screening)
 import { addSupplier, listSuppliers } from "@/lib/server/services";
-import { actor, errorJson, mutate, read, readBody, str } from "../_lib/http";
+import { actor, errorJson, act, read, readBody, str } from "../_lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const b = await readBody(req);
-    return await mutate(
+    return await act(
       (ctx) => ({
         supplier: addSupplier(
           ctx,

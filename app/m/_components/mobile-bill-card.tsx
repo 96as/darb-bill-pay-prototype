@@ -1,6 +1,7 @@
 "use client";
 
-import { Landmark, ReceiptText, UserPlus, Zap, type LucideIcon } from "lucide-react";
+import { Landmark, ReceiptText, Zap, type LucideIcon } from "lucide-react";
+import { ApprovalNotices } from "@/components/darb/approval-notices";
 import { Amount } from "@/components/darb/amount";
 import { InvoiceThumb } from "@/components/darb/invoice-preview";
 import { billReference, formatArrival, formatPlainDate, reasonLabel } from "@/components/darb/payment-format";
@@ -26,7 +27,6 @@ export function MobileBillCard({ item, payDate, className }: { item: RunBillItem
   const RailIcon = RAIL_ICONS[quote.rail];
   const differs = quote.arrivalDate !== payDate;
   const reason = reasonLabel(quote.reason, t);
-  const addedBy = item.supplierAddedBy ? (lang === "ar" ? item.supplierAddedBy.nameAr : item.supplierAddedBy.name) : "";
 
   return (
     <article className={cn("rounded-2xl border bg-card p-3", className)} data-bill-id={bill.id}>
@@ -65,12 +65,7 @@ export function MobileBillCard({ item, payDate, className }: { item: RunBillItem
           ) : null}
         </div>
       </div>
-      {item.firstPayment ? (
-        <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-warning px-2.5 py-2 text-xs text-warning-foreground">
-          <UserPlus className="mt-px size-3.5 shrink-0" aria-hidden />
-          <span>{fmt(m.firstPayment, { name: addedBy })}</span>
-        </p>
-      ) : null}
+      {!item.payment ? <ApprovalNotices data={item} className="mt-3" /> : null}
     </article>
   );
 }

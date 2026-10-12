@@ -1,7 +1,7 @@
 // Server-side view models for payment runs (desktop /bills/runs and the mobile approval view /m).
 // The only data access is readStore() (app/(app)/store.ts, the shared swap point).
-import { supplierPaymentGate } from "@/lib/domain/permissions";
-import { riyadhDate } from "@/lib/domain/time";
+import { lastApprovedBankChange, supplierPaymentGate } from "@/lib/domain/permissions";
+import { diffDays, riyadhDate } from "@/lib/domain/time";
 import type {
   AccountingEntry,
   Bill,
@@ -185,6 +185,10 @@ export interface RunBillItem {
   /** No payment has left for this supplier's current IBAN yet (BP-06). */
   firstPayment: boolean;
   supplierAddedBy?: Person;
+  /** The bill's own pay date (a run may pay some bills on their due date instead of the run date). */
+  payDate: ISODate;
+  /** Last approved IBAN change within 30 days, shown on approval screens. */
+  bankChange?: { changedAt: ISODateTime; requestedByName?: Person; approvedByName?: Person };
 }
 
 export interface RunDetailView {
@@ -198,8 +202,26 @@ export interface RunDetailView {
   approval: ApprovalContext;
 }
 
-function billItem(store: StoreData, bill: Bill, payDate: ISODate, approvedAt: ISODateTime | undefined, paid: string[]): RunBillItem {
+const BANK_CHANGE_WINDOW_DAYS = 30;
+
+function recentBankChange(store: StoreData, supplier: Supplier | undefined): RunBillItem["bankChange"] {
+  const change = supplier ? lastApprovedBankChange(supplier) : undefined;
+  if (!change?.decidedAt) return undefined;
+  if (diffDays(riyadhDate(change.decidedAt), riyadhDate(store.clock.now)) > BANK_CHANGE_WINDOW_DAYS) return undefined;
   const people = peopleOf(store);
+  return {
+    changedAt: change.decidedAt,
+    requestedByName: people[change.requestedBy],
+    approvedByName: change.decidedBy ? people[change.decidedBy] : undefined,
+  };
+}
+
+function billItem(store: StoreData, bill: Bill, runPayDate: ISODate, approvedAt: ISODateTime | undefined, paid: string[]): RunBillItem {
+  const people = peopleOf(store);
+  const today = riyadhDate(store.clock.now);
+  // Per-bill pay date (e.g. "pay on due date") wins over the run's date; a past date pays today.
+  const own = bill.runId && bill.payDate ? bill.payDate : runPayDate;
+  const payDate = own < today && !bill.paymentId ? today : own;
   const supplier = bill.supplierId ? store.suppliers.find((s) => s.id === bill.supplierId) : undefined;
   const payment =
     (bill.paymentId ? store.payments.find((p) => p.id === bill.paymentId) : undefined) ??
@@ -216,6 +238,8 @@ function billItem(store: StoreData, bill: Bill, payDate: ISODate, approvedAt: IS
     accounting: store.accounting.filter((e) => e.billId === bill.id),
     firstPayment: bill.kind === "supplier" && !!supplier && !paid.includes(supplier.id),
     supplierAddedBy: supplier ? people[supplier.createdBy] : undefined,
+    payDate: own,
+    bankChange: recentBankChange(store, supplier),
   };
 }
 

@@ -44,11 +44,11 @@ export function sameSupplier(a: DuplicateCandidate, b: DuplicateCandidate): bool
 }
 
 /**
- * The first non-cancelled bill (other than the candidate itself) that duplicates the candidate.
+ * The first non-cancelled, non-discarded bill (other than the candidate itself) that duplicates the candidate.
  * A UUID match anywhere wins over a supplier + number match.
  */
 export function findDuplicate(candidate: DuplicateCandidate, bills: readonly Bill[]): DuplicateMatch | null {
-  const others = bills.filter((b) => b.status !== "cancelled" && (!candidate.id || b.id !== candidate.id));
+  const others = bills.filter((b) => b.status !== "cancelled" && b.status !== "discarded" && (!candidate.id || b.id !== candidate.id));
 
   if (candidate.invoiceUuid) {
     const uuid = normalizeUuid(candidate.invoiceUuid);

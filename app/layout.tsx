@@ -30,7 +30,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <I18nProvider lang={lang}>
           <TooltipProvider delay={300}>{children}</TooltipProvider>
           {/* Light theme only (Darb app); bottom-end so toasts never cover the demo bar (flips in Arabic). */}
-          <Toaster theme="light" position={lang === "ar" ? "bottom-left" : "bottom-right"} dir={dirOf(lang)} />
+          <Toaster
+            theme="light"
+            position={lang === "ar" ? "bottom-left" : "bottom-right"}
+            dir={dirOf(lang)}
+            expand
+            gap={10}
+            visibleToasts={3}
+            duration={4000}
+            // Phones: keep clear of the floating Demo button.
+            mobileOffset={{ bottom: 80 }}
+          />
         </I18nProvider>
       </body>
     </html>

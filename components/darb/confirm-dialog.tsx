@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import {
   Dialog,
   DialogClose,
@@ -35,12 +36,13 @@ export function ConfirmDialog({
   onConfirm: () => Promise<unknown> | void;
   destructive?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger}>{children}</DialogTrigger>
-      <DialogContent>
+      <DialogContent closeLabel={t.ui.close}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}

@@ -34,15 +34,15 @@
       "confidence": 0.95
     },
     "subtotal": {
-      "value": "10869.57",
+      "value": "11000.00",
       "confidence": 0.97
     },
     "vat": {
-      "value": "1630.43",
+      "value": "1650.00",
       "confidence": 0.96
     },
     "total": {
-      "value": "12500.00",
+      "value": "12650.00",
       "confidence": 0.98
     }
   }

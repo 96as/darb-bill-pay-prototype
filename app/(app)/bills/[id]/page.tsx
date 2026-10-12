@@ -20,14 +20,15 @@ export default async function BillPage({ params }: { params: Promise<{ id: strin
         <BillHeader />
         <BillBanners />
         <BillPaymentSection />
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,540px)]">
-          <div className="xl:sticky xl:top-24">
-            <InvoicePreview file={view.bill.file} title={view.bill.invoiceNumber} />
-          </div>
-          <div className="min-w-0 space-y-6">
-            <BillFields />
+        {/* Desktop: the action column is sticky on the right; narrow screens: it comes first. */}
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+          <aside className="order-first min-w-0 space-y-6 xl:sticky xl:top-20 xl:order-last xl:max-h-[calc(100svh-6rem)] xl:overflow-y-auto xl:pb-1">
             <BillSupplier />
             <BillActions />
+          </aside>
+          <div className="min-w-0 space-y-6">
+            <InvoicePreview file={view.bill.file} title={view.bill.invoiceNumber} />
+            <BillFields />
             <BillMeta />
           </div>
         </div>

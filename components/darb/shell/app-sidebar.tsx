@@ -11,14 +11,17 @@ import { useDemoState } from "./demo-state";
 import { DARB_LOGO_SRC, NAV_BOTTOM, NAV_GROUPS, type NavItem } from "./nav-config";
 
 export function DarbWordmark({ className }: { className?: string }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  // Arabic UI: "درب" (no logo image is configured; with one, the image carries the brand).
+  const word = lang === "ar" && !DARB_LOGO_SRC ? "درب" : "Darb";
   return (
     <Link
       href="/bills"
-      aria-label={`Darb · ${t.nav.bills}`}
-      lang="en"
+      aria-label={`${word} · ${t.nav.bills}`}
+      lang={word === "Darb" ? "en" : "ar"}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md font-sans text-xl leading-none font-medium tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        "inline-flex items-center gap-2 rounded-md text-xl leading-none font-medium tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        word === "Darb" ? "font-sans" : "font-arabic",
         className,
       )}
     >
@@ -26,7 +29,7 @@ export function DarbWordmark({ className }: { className?: string }) {
         // eslint-disable-next-line @next/next/no-img-element -- static 24px logo slot
         <img src={DARB_LOGO_SRC} alt="" width={24} height={24} className="size-6" />
       ) : null}
-      Darb
+      {word}
     </Link>
   );
 }

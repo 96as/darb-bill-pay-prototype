@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Clock, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/darb/date-input";
 import { Label } from "@/components/ui/label";
 import type { ISODateTime } from "@/lib/domain/types";
 import { useI18n } from "@/lib/i18n/client";
@@ -33,26 +34,39 @@ export function DemoClock({
   now,
   onChange,
   className,
+  open: openProp,
+  onOpenChange,
+  hideTrigger,
 }: {
   now: ISODateTime;
   onChange: (now: ISODateTime) => void;
   className?: string;
+  /** Controlled mode (e.g. opened from the Demo panel); the dialog then lives outside that panel. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
   const { t, lang } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const open = openProp ?? innerOpen;
   const [date, setDate] = useState(riyadhDate(now));
   const [time, setTime] = useState(riyadhTime(now));
+  const [error, setError] = useState<string | null>(null);
 
-  function handleOpenChange(next: boolean) {
-    if (next) {
+  // Start from the current clock each time the dialog opens (also when opened from outside).
+  useEffect(() => {
+    if (open) {
       setDate(riyadhDate(now));
       setTime(riyadhTime(now));
       setError(null);
     }
-    setOpen(next);
-  }
+  }, [open, now]);
 
-  const [error, setError] = useState<string | null>(null);
+  function setOpen(next: boolean) {
+    if (onOpenChange) onOpenChange(next);
+    else setInnerOpen(next);
+  }
+  const handleOpenChange = setOpen;
 
   function save(event: React.FormEvent) {
     event.preventDefault();
@@ -69,6 +83,7 @@ export function DemoClock({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
+      {hideTrigger ? null : (
       <DialogTrigger
         render={
           <button
@@ -89,7 +104,8 @@ export function DemoClock({
         </span>
         <Pencil className="size-3.5 text-muted-foreground group-hover/clock:text-primary" aria-hidden />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      )}
+      <DialogContent className="sm:max-w-md" closeLabel={t.ui.close}>
         <form onSubmit={save} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{t.shell.clockTitle}</DialogTitle>
@@ -108,6 +124,7 @@ export function DemoClock({
                     <button
                       type="button"
                       disabled={past}
+                      aria-describedby={past ? "demo-clock-forward-only" : undefined}
                       onClick={() => {
                         if (!current) onChange(instant);
                         setOpen(false);
@@ -133,7 +150,7 @@ export function DemoClock({
           <div className="-mt-2 grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="demo-clock-date">{t.shell.date}</Label>
-              <Input id="demo-clock-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <DateInput id="demo-clock-date" value={date} onChange={setDate} required />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="demo-clock-time">
@@ -147,7 +164,9 @@ export function DemoClock({
               {error}
             </p>
           ) : (
-            <p className="-mt-2 text-xs text-muted-foreground">{t.demo.forwardOnly}</p>
+            <p id="demo-clock-forward-only" className="-mt-2 text-xs text-muted-foreground">
+              {t.demo.forwardOnly}
+            </p>
           )}
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>{t.shell.cancel}</DialogClose>

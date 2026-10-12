@@ -16,7 +16,7 @@ export function BillsStats({ balances }: { balances: BillsView["balances"] }) {
   const { t, lang } = useI18n();
   const short = balances.available < 0;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <StatCard
         icon={Wallet}
         label={t.bills.stats.mainBalance}

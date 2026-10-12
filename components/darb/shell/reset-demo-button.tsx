@@ -16,17 +16,33 @@ import {
 import { useT } from "@/lib/i18n/client";
 
 /** "Reset demo" with a confirmation dialog. */
-export function ResetDemoButton({ onReset, className }: { onReset: () => void; className?: string }) {
+export function ResetDemoButton({
+  onReset,
+  className,
+  open: openProp,
+  onOpenChange,
+  hideTrigger,
+}: {
+  onReset: () => void;
+  className?: string;
+  /** Controlled mode (opened from the Demo panel, rendered outside it). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+}) {
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const open = openProp ?? innerOpen;
+  const setOpen = (next: boolean) => (onOpenChange ? onOpenChange(next) : setInnerOpen(next));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" className={className} />}>
-        <RotateCcw aria-hidden />
-        <span className="hidden xl:inline">{t.shell.resetDemo}</span>
-        <span className="sr-only xl:hidden">{t.shell.resetDemo}</span>
-      </DialogTrigger>
-      <DialogContent>
+      {hideTrigger ? null : (
+        <DialogTrigger render={<Button variant="outline" className={className} />}>
+          <RotateCcw aria-hidden />
+          {t.shell.resetDemo}
+        </DialogTrigger>
+      )}
+      <DialogContent closeLabel={t.ui.close}>
         <DialogHeader>
           <DialogTitle>{t.shell.resetTitle}</DialogTitle>
           <DialogDescription>{t.shell.resetDescription}</DialogDescription>

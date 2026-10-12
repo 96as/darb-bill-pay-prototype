@@ -18,7 +18,7 @@ export function BillBanners() {
   const { view, setEditing } = useBill();
   const { bill, duplicateOf, supplier } = view;
   const { run, pending } = useApiAction();
-  const open = bill.status !== "cancelled" && bill.status !== "paid";
+  const open = bill.status !== "cancelled" && bill.status !== "paid" && bill.status !== "discarded";
 
   const banners: React.ReactNode[] = [];
 
@@ -28,6 +28,17 @@ export function BillBanners() {
         {fmt(t.billDetail.banners.cancelled, {
           name: view.cancelledBy ? (lang === "ar" ? view.cancelledBy.nameAr : view.cancelledBy.name) : "—",
           date: bill.cancelledAt ? formatDateTime(bill.cancelledAt, lang) : "—",
+        })}
+      </Notice>,
+    );
+  }
+
+  if (bill.status === "discarded") {
+    banners.push(
+      <Notice key="discarded" tone="muted" title={t.billDetail.banners.discardedTitle}>
+        {fmt(t.billDetail.banners.discardedBody, {
+          name: view.discardedBy ? (lang === "ar" ? view.discardedBy.nameAr : view.discardedBy.name) : "—",
+          date: bill.discardedAt ? formatDateTime(bill.discardedAt, lang) : "—",
         })}
       </Notice>,
     );
@@ -56,7 +67,7 @@ export function BillBanners() {
                 confirmLabel={t.billDetail.banners.discard}
                 cancelLabel={t.ui.cancel}
                 destructive
-                onConfirm={() => run(() => api.post(`/api/bills/${bill.id}/cancel`), { success: t.billDetail.banners.discarded })}
+                onConfirm={() => run(() => api.post(`/api/bills/${bill.id}/discard`), { success: t.billDetail.banners.discarded })}
               >
                 {t.billDetail.banners.discard}
               </ConfirmDialog>
@@ -93,6 +104,14 @@ export function BillBanners() {
     banners.push(
       <Notice key="einvoice" tone="info" icon={FileCode} title={t.billDetail.banners.eInvoiceTitle}>
         {fromXmlFile ? t.billDetail.banners.eInvoiceXml : t.billDetail.banners.eInvoice}
+      </Notice>,
+    );
+  }
+
+  if (bill.extraction === "ocr" && (bill.needsReview.length === 0 || !open)) {
+    banners.push(
+      <Notice key="ocr-done" tone="muted" icon={ScanText} title={t.billDetail.banners.ocrTitle}>
+        {t.billDetail.banners.ocrChecked}
       </Notice>,
     );
   }

@@ -10,13 +10,15 @@ import { approverIds, getAccount, getUser, today } from "../context";
 import { conflict, ensure, invalid } from "../errors";
 import { audit, auditFor } from "../audit";
 import { newId } from "../ids";
-import { committedForDay, findSupplier, getBill, getRunById, latestPayment, notify, paidSupplierIds, quoteFor, quoteOfPayment } from "./common";
+import { bankChangeInfo, committedForDay, findSupplier, type BankChangeInfo, getBill, getRunById, latestPayment, notify, paidSupplierIds, quoteFor, quoteOfPayment } from "./common";
 import { approveAndSchedule, assertSubmittable, requireApproverRole } from "./workflow";
 import { runScheduler, type SchedulerReport } from "./scheduler";
 import { formatSAR } from "@/lib/domain/money";
 
 export interface BillQuote {
   billId: string;
+  /** The bill's own pay date (the run's, or its override). */
+  payDate?: ISODate;
   amount: Halalas;
   rail: RailQuote["rail"];
   sendAt: string;
@@ -26,8 +28,9 @@ export interface BillQuote {
   fundingAccountId: string;
 }
 
-const toBillQuote = (bill: Bill, q: RailQuote, fundingAccountId = bill.fundingAccountId): BillQuote => ({
+const toBillQuote = (bill: Bill, q: RailQuote, fundingAccountId = bill.fundingAccountId, payDate = bill.payDate): BillQuote => ({
   billId: bill.id,
+  ...(payDate ? { payDate } : {}),
   amount: bill.total,
   rail: q.rail,
   sendAt: q.sendAt,
@@ -43,12 +46,25 @@ function checkPayDate(ctx: Ctx, payDate: unknown): ISODate {
   return payDate;
 }
 
-/** BP-09: what the run screen shows before submitting — rail and expected arrival per bill. */
-export function quoteBills(ctx: Ctx, billIds: string[], payDate: ISODate, funding: Record<string, string> = {}): BillQuote[] {
-  const day = checkPayDate(ctx, payDate);
+/** Each bill's own pay date: its override (e.g. "pay on due date") or the run's date. */
+function payDatesFor(ctx: Ctx, billIds: string[], runDate: ISODate, overrides: Record<string, string> = {}): Record<string, ISODate> {
+  const out: Record<string, ISODate> = {};
+  for (const id of billIds) out[id] = overrides[id] !== undefined ? checkPayDate(ctx, overrides[id]) : runDate;
+  return out;
+}
+
+/** BP-09: what the run screen shows before submitting — rail and expected arrival per bill, on each bill's pay date. */
+export function quoteBills(
+  ctx: Ctx,
+  billIds: string[],
+  payDate: ISODate,
+  funding: Record<string, string> = {},
+  payDates: Record<string, string> = {},
+): BillQuote[] {
+  const days = payDatesFor(ctx, billIds, checkPayDate(ctx, payDate), payDates);
   return billIds.map((id) => {
     const bill = getBill(ctx, id);
-    return toBillQuote(bill, quoteFor(ctx, bill, day), funding[id] ?? bill.fundingAccountId);
+    return toBillQuote(bill, quoteFor(ctx, bill, days[id]), funding[id] ?? bill.fundingAccountId, days[id]);
   });
 }
 
@@ -58,6 +74,8 @@ export interface CreateRunInput {
   billIds: string[];
   /** Per-bill funding account (main or a subwallet, BP-18); defaults to the bill's. */
   funding?: Record<string, string>;
+  /** Per-bill pay date overriding the run's (e.g. pay on its due date). */
+  payDates?: Record<string, ISODate>;
 }
 
 export function createRun(ctx: Ctx, input: CreateRunInput, actorId: string): { run: PaymentRun; quotes: BillQuote[] } {
@@ -67,12 +85,13 @@ export function createRun(ctx: Ctx, input: CreateRunInput, actorId: string): { r
   const ids = [...new Set(input.billIds ?? [])];
   if (ids.length === 0) throw invalid("run_empty", "Add at least one bill to the run");
   const bills = ids.map((id) => getBill(ctx, id));
+  const days = payDatesFor(ctx, ids, payDate, input.payDates);
   for (const bill of bills) {
     if (bill.status !== "draft") throw conflict("not_draft", `${bill.invoiceNumber} is not a draft`);
     if (bill.runId) throw conflict("in_run", `${bill.invoiceNumber} is already in a payment run`);
     const account = input.funding?.[bill.id] ?? bill.fundingAccountId;
     getAccount(ctx, account);
-    assertSubmittable(ctx, bill, payDate, account);
+    assertSubmittable(ctx, bill, days[bill.id], account);
   }
   const run: PaymentRun = {
     id: newId(ctx.store, "run"),
@@ -88,11 +107,11 @@ export function createRun(ctx: Ctx, input: CreateRunInput, actorId: string): { r
   ctx.store.runs.push(run);
   for (const bill of bills) {
     bill.runId = run.id;
-    bill.payDate = payDate;
+    bill.payDate = days[bill.id];
     bill.fundingAccountId = input.funding?.[bill.id] ?? bill.fundingAccountId;
   }
-  audit(ctx, actorId, "run.created", { type: "run", id: run.id }, undefined, { name: run.name, payDate, billIds: ids, funding: input.funding });
-  return { run, quotes: bills.map((b) => toBillQuote(b, quoteFor(ctx, b, payDate))) };
+  audit(ctx, actorId, "run.created", { type: "run", id: run.id }, undefined, { name: run.name, payDate, billIds: ids, funding: input.funding, payDates: input.payDates });
+  return { run, quotes: bills.map((b) => toBillQuote(b, quoteFor(ctx, b, b.payDate!))) };
 }
 
 export function submitRun(ctx: Ctx, runId: string, actorId: string): RunView {
@@ -103,7 +122,7 @@ export function submitRun(ctx: Ctx, runId: string, actorId: string): RunView {
   const bills = run.billIds.map((id) => getBill(ctx, id)).filter((b) => b.status !== "cancelled");
   if (bills.length === 0) throw invalid("run_empty", "This run has no bills to pay");
   checkPayDate(ctx, run.payDate);
-  for (const bill of bills) assertSubmittable(ctx, bill, run.payDate, bill.fundingAccountId);
+  for (const bill of bills) assertSubmittable(ctx, bill, bill.payDate ?? run.payDate, bill.fundingAccountId);
   const at = ctx.now.toISOString();
   for (const bill of bills) {
     assertTransition(bill.status, "awaiting_approval");
@@ -147,7 +166,11 @@ export function approveRun(ctx: Ctx, runId: string, actorId: string): RunView & 
   const limits = ctx.store.company.limits;
   for (const bill of pending) ensure(checkPerPayment(bill.total, limits), 422);
   const total = pending.reduce((s, b) => s + b.total, 0);
-  ensure(checkDaily(committedForDay(ctx, run.payDate, new Set(pending.map((b) => b.id))), total, limits), 422);
+  // Daily limit per actual pay date (bills may override the run's date).
+  const byDay = new Map<ISODate, number>();
+  for (const b of pending) byDay.set(b.payDate ?? run.payDate, (byDay.get(b.payDate ?? run.payDate) ?? 0) + b.total);
+  const pendingIds = new Set(pending.map((b) => b.id));
+  for (const [day, amount] of byDay) ensure(checkDaily(committedForDay(ctx, day, pendingIds), amount, limits), 422);
 
   run.approvals.push({ userId: actorId, at: ctx.now.toISOString(), runId: run.id });
   run.status = "approved";
@@ -185,6 +208,8 @@ export interface RunItem {
   payment?: Payment;
   /** Same numbers the run screen showed (quoteBills) until the payment exists; then the payment's own. */
   quote: BillQuote;
+  /** Present when the supplier's IBAN was changed (approved) in the last 30 days. */
+  bankChange?: BankChangeInfo;
 }
 
 export interface RunView {
@@ -202,13 +227,15 @@ export function getRun(ctx: Ctx, runId: string): RunView {
     const bill = getBill(ctx, id);
     const payment = latestPayment(ctx, bill);
     const supplier = findSupplier(ctx, bill.supplierId);
-    const live = payment && payment.status !== "cancelled" ? quoteOfPayment(payment) : quoteFor(ctx, bill, run.payDate < day ? day : run.payDate);
+    const own = bill.payDate ?? run.payDate;
+    const live = payment && payment.status !== "cancelled" ? quoteOfPayment(payment) : quoteFor(ctx, bill, own < day ? day : own);
     return {
       bill,
       displayStatus: displayStatus(bill, day),
       ...(supplier ? { supplier: { id: supplier.id, nameEn: supplier.nameEn, nameAr: supplier.nameAr, bankName: supplier.bankName, iban: supplier.iban } } : {}),
       ...(payment ? { payment } : {}),
       quote: toBillQuote(bill, live, payment?.fundingAccountId ?? bill.fundingAccountId),
+      ...(bill.kind === "supplier" && bankChangeInfo(ctx, supplier) ? { bankChange: bankChangeInfo(ctx, supplier) } : {}),
     };
   });
   const active = items.filter((i) => i.bill.status !== "cancelled");

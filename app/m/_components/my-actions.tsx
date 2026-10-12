@@ -9,7 +9,9 @@ import { EmptyState } from "@/components/darb/empty-state";
 import { InitialAvatar } from "@/components/darb/initial-avatar";
 import { useApiAction } from "@/components/darb/payment-actions";
 import { billReference, formatArrival, formatPlainDate, payeeName, permissionMessage } from "@/components/darb/payment-format";
-import { billApprovalHint, runApprovalHint } from "@/components/darb/payment-rules";
+import { billApprovalHint, previewQuote, runApprovalHint } from "@/components/darb/payment-rules";
+import { ConfirmRelease, earliestArrival } from "@/components/darb/confirm-release";
+import type { Halalas, ISODate } from "@/lib/domain/types";
 import type { RuleResult } from "@/lib/domain/result";
 import { fmt, plural } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
@@ -25,6 +27,10 @@ export function MyActions({ view }: { view: MobileHomeView }) {
   const { actingUser } = useMobileDemo();
   const { run: call, busy } = useApiAction();
   const [declining, setDeclining] = useState<{ url: string; title: string } | null>(null);
+  const [releasing, setReleasing] = useState<{ key: string; url: string; total: Halalas; count: number; earliest?: ISODate } | null>(null);
+  /** Earliest arrival for the confirm sheet, from the same rails function as everywhere else. */
+  const earliestFor = (bills: MobileHomeView["approval"]["bills"], payDate: ISODate) =>
+    earliestArrival(bills.map((b) => previewQuote(b, b.payDate && b.payDate > view.today ? b.payDate : payDate, view.now)));
   const count = view.runs.length + view.bills.length;
 
   const noteFor = (hint: RuleResult) =>
@@ -97,7 +103,18 @@ export function MyActions({ view }: { view: MobileHomeView }) {
               disabled={!hint.ok}
               pending={busy !== null}
               note={noteFor(hint)}
-              onApprove={() => call(`run:${run.id}`, `${path}/approve`, {}, { success: m.approvedToast })}
+              onApprove={() =>
+                setReleasing({
+                  key: `run:${run.id}`,
+                  url: `${path}/approve`,
+                  total,
+                  count: billCount,
+                  earliest: earliestFor(
+                    view.approval.bills.filter((b) => b.runId === run.id && b.status !== "cancelled"),
+                    run.payDate < view.today ? view.today : run.payDate,
+                  ),
+                })
+              }
               onDecline={() => setDeclining({ url: `${path}/reject`, title: m.declineRunTitle })}
             />
           );
@@ -130,7 +147,15 @@ export function MyActions({ view }: { view: MobileHomeView }) {
               disabled={!hint.ok}
               pending={busy !== null}
               note={noteFor(hint)}
-              onApprove={() => call(`bill:${bill.id}`, `${path}/approve`, {}, { success: m.approvedToast })}
+              onApprove={() =>
+                setReleasing({
+                  key: `bill:${bill.id}`,
+                  url: `${path}/approve`,
+                  total: bill.total,
+                  count: 1,
+                  earliest: earliestFor([bill], view.today),
+                })
+              }
               onDecline={() => setDeclining({ url: `${path}/reject`, title: m.declineBillTitle })}
             />
           );
@@ -144,6 +169,20 @@ export function MyActions({ view }: { view: MobileHomeView }) {
         <Monitor className="size-4" aria-hidden />
         {m.desktopLink}
       </Link>
+
+      <ConfirmRelease
+        open={releasing !== null}
+        onOpenChange={(open) => !open && setReleasing(null)}
+        total={releasing?.total ?? 0}
+        count={releasing?.count ?? 0}
+        earliestArrival={releasing?.earliest}
+        pending={busy !== null}
+        onConfirm={async () => {
+          if (!releasing) return;
+          const done = await call(releasing.key, releasing.url, {}, { success: m.approvedToast });
+          if (done) setReleasing(null);
+        }}
+      />
 
       <BottomSheet
         open={declining !== null}

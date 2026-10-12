@@ -76,7 +76,7 @@ export function addSupplierB(ctx: Ctx, actorId: string = NOURA, iban: string = I
 
 /**
  * Demo up to step 4: email processed, B added, OCR fields checked, a run of the three bills
- * (45,000 e-invoice, 8,050 photo, 12,500 saved draft) dated today and submitted by Noura.
+ * (46,000 e-invoice, 8,050 photo, 12,650 saved draft) dated today and submitted by Noura.
  */
 export async function demoRun(ctx: Ctx, opts: { payDate?: string; funding?: Record<string, string>; submit?: boolean } = {}) {
   const { einvoice, photo } = await processSeedEmail(ctx);

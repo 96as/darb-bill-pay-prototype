@@ -7,6 +7,7 @@ import { Panel, PanelHeader } from "@/components/darb/panel";
 import { SourceChip } from "@/components/darb/source-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/darb/date-input";
 import { sar, totalsAgree } from "@/lib/domain/money";
 import { isISODate } from "@/lib/domain/time";
 import type { Bill, BillFieldKey, Halalas } from "@/lib/domain/types";
@@ -138,9 +139,17 @@ export function BillFields() {
                     {label(d.key)}
                     {review ? <SourceChip kind="check" label={t.ui.ocrCheck} /> : null}
                   </label>
+                  {d.kind === "date" ? (
+                    <DateInput
+                      id={id}
+                      value={form[d.key] ?? ""}
+                      disabled={!d.editable || pending}
+                      onChange={(iso) => setForm((f) => ({ ...f, [d.key]: iso }))}
+                    />
+                  ) : (
                   <Input
                     id={id}
-                    type={d.kind === "date" ? "date" : "text"}
+                    type="text"
                     inputMode={d.kind === "amount" ? "decimal" : undefined}
                     dir={d.kind === "arabic" ? "rtl" : d.kind === "mono" || d.kind === "amount" ? "ltr" : undefined}
                     lang={d.kind === "arabic" ? "ar" : undefined}
@@ -155,6 +164,7 @@ export function BillFields() {
                       review && "border-warning-foreground/60",
                     )}
                   />
+                  )}
                   {errors[d.key] ? <p className="text-xs text-error-foreground">{errors[d.key]}</p> : null}
                 </div>
               );
@@ -208,11 +218,10 @@ export function BillFields() {
                   </span>
                 </dd>
                 <dd className="flex justify-end pt-0.5">
-                  {source === "xml" ? (
-                    <SourceChip kind="e_invoice" />
-                  ) : source === "ocr" ? (
-                    <SourceChip kind={review ? "check" : "ocr"} label={review ? t.ui.ocrCheck : undefined} />
-                  ) : source === "manual" ? (
+                  {/* The reading source is said once, in the banner; here only what needs attention. */}
+                  {review ? (
+                    <SourceChip kind="check" label={t.ui.ocrCheck} />
+                  ) : source === "manual" && bill.extraction !== "manual" ? (
                     <SourceChip kind="edited" />
                   ) : null}
                 </dd>

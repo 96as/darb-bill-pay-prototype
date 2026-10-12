@@ -1,7 +1,7 @@
 // GET /api/bills/{id}  ·  PATCH /api/bills/{id} (edit fields; "reviewed": [fields] clears OCR flags)
 import type { BillPatch } from "@/lib/server/services";
 import { getBillDetail, markFieldsReviewed, updateBill } from "@/lib/server/services";
-import { actor, date, errorJson, fieldKeys, money, mutate, read, readBody, str, type Body, type Params } from "../../_lib/http";
+import { actor, date, errorJson, fieldKeys, money, act, read, readBody, str, type Body, type Params } from "../../_lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export async function PATCH(req: Request, { params }: Params<"id">) {
   const { id } = await params;
   try {
     const b = await readBody(req);
-    return await mutate((ctx) => {
+    return await act((ctx) => {
       const patch = patchOf(b);
       const reviewed = fieldKeys(b, "reviewed");
       const result = updateBill(ctx, id, patch, actor(ctx));

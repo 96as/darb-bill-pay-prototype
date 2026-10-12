@@ -5,7 +5,7 @@
 
 export const SAR = (halalas: number): string => (halalas / 100).toFixed(2);
 
-/** "39130.43" -> "39,130.43" */
+/** "40000.00" -> "40,000.00" */
 export const SAR_DISPLAY = (halalas: number): string =>
   (halalas / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -102,7 +102,7 @@ export const COOL_BREEZE_INVOICE = {
       nameAr: "صيانة وقائية ربع سنوية للمبردات المائية – الربع الرابع 2026",
       quantity: 3,
       unitCode: "EA",
-      unitPrice: 561668,
+      unitPrice: 600000,
     },
     {
       id: "2",
@@ -111,11 +111,13 @@ export const COOL_BREEZE_INVOICE = {
       nameAr: "قطع غيار للضاغط – طقم ضاغط حلزوني وفلتر زيت، توريد وتركيب",
       quantity: 1,
       unitCode: "SET",
-      unitPrice: 2228039,
+      unitPrice: 2200000,
     },
   ] as InvoiceLine[],
-  /** Seed totals (BUILD-NOTES): the script asserts the lines add up to these. */
-  expected: { subtotal: 3913043, vat: 586957, total: 4500000 },
+  /** Expected totals: the script asserts the lines add up to these, with exact 15% VAT. */
+  expected: { subtotal: 4000000, vat: 600000, total: 4600000 },
+  totalInWordsAr: "فقط ستة وأربعون ألف ريال سعودي لا غير",
+  totalInWordsEn: "Forty-six thousand Saudi riyals only",
 };
 
 // ---------- Supplier A: Green Oasis (paper invoice photo, OCR) ----------
@@ -160,9 +162,8 @@ export const GREEN_OASIS_INVOICE = {
 };
 
 /**
- * The seeded "saved earlier" bill (BUILD-NOTES: GOL-2026-0917, 10,869.57 + 1,630.43 = 12,500.00).
- * A clean digital PDF, no embedded XML. Line amounts are chosen so the per-line VAT
- * (rounded half-up) adds up to the seed VAT: 985.44 + 644.99 = 1,630.43.
+ * The seeded "saved earlier" bill GOL-2026-0917: 11,000.00 + 1,650.00 = 12,650.00 SAR.
+ * A clean digital PDF, no embedded XML. Every line's VAT is exactly 15%.
  */
 export const GREEN_OASIS_INVOICE_0917 = {
   id: "GOL-2026-0917",
@@ -182,7 +183,7 @@ export const GREEN_OASIS_INVOICE_0917 = {
       quantity: 1,
       unitAr: "مقطوعية",
       unitEn: "lump sum",
-      unitPrice: 656961,
+      unitPrice: 740000,
     },
     {
       nameAr: "تقليم أشجار النخيل (12 نخلة)",
@@ -190,10 +191,10 @@ export const GREEN_OASIS_INVOICE_0917 = {
       quantity: 12,
       unitAr: "نخلة",
       unitEn: "tree",
-      unitPrice: 35833,
+      unitPrice: 30000,
     },
   ],
-  expected: { subtotal: 1086957, vat: 163043, total: 1250000 },
-  totalInWordsAr: "فقط اثنا عشر ألفاً وخمسمائة ريال سعودي لا غير",
-  totalInWordsEn: "Twelve thousand five hundred Saudi riyals only",
+  expected: { subtotal: 1100000, vat: 165000, total: 1265000 },
+  totalInWordsAr: "فقط اثنا عشر ألفاً وستمائة وخمسون ريالاً سعودياً لا غير",
+  totalInWordsEn: "Twelve thousand six hundred and fifty Saudi riyals only",
 };

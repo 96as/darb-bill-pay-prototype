@@ -123,8 +123,8 @@ describe("mock rail", () => {
   it("refuses SARIE outside its window and bad requests", () => {
     const store = createSeed();
     const rail = createMockRail();
-    expect(() => rail.send({ requestKey: "a", amount: 4_500_000, rail: "sarie", iban: "SA6710000000020315550044" }, store, NOW)).toThrow(RailRejectedError);
-    expect(rail.send({ requestKey: "b", amount: 4_500_000, rail: "sarie", iban: "SA6710000000020315550044" }, store, new Date(riyadh("2026-10-18", "09:00"))).status).toBe("settled");
+    expect(() => rail.send({ requestKey: "a", amount: 4_600_000, rail: "sarie", iban: "SA6710000000020315550044" }, store, NOW)).toThrow(RailRejectedError);
+    expect(rail.send({ requestKey: "b", amount: 4_600_000, rail: "sarie", iban: "SA6710000000020315550044" }, store, new Date(riyadh("2026-10-18", "09:00"))).status).toBe("settled");
     expect(() => rail.send({ requestKey: "c", amount: 0, rail: "instant", iban: "x" }, store, NOW)).toThrow(RailRejectedError);
     expect(() => rail.send({ requestKey: "d", amount: 100, rail: "instant" }, store, NOW)).toThrow(RailRejectedError);
   });
@@ -136,13 +136,13 @@ describe("mock accounting", () => {
     const acc = createMockAccounting();
     const bill = store.bills.find((b) => b.id === "b_gol_0917")!;
     const payable = acc.syncPayable(store, { ...bill, file: { id: "f_1", name: "GOL.pdf", mime: "application/pdf", size: 1, sha256: "x", path: "p" } }, NOW);
-    expect(payable).toMatchObject({ kind: "payable", invoiceNumber: "GOL-2026-0917", vat: 163_043, total: 1_250_000, attachmentName: "GOL.pdf", status: "synced", system: "Accounting system (mock)" });
+    expect(payable).toMatchObject({ kind: "payable", invoiceNumber: "GOL-2026-0917", vat: 165_000, total: 1_265_000, attachmentName: "GOL.pdf", status: "synced", system: "Accounting system (mock)" });
     expect(payable.lines.reduce((s, l) => s + l.debit - l.credit, 0)).toBe(0);
     expect(acc.syncPayable(store, bill, NOW).id).toBe(payable.id); // once per bill
-    const payment = acc.syncPayment(store, bill, { ...store.payments[0], id: "pay_9", amount: 1_250_000, fundingAccountId: "w_maintenance" }, NOW);
+    const payment = acc.syncPayment(store, bill, { ...store.payments[0], id: "pay_9", amount: 1_265_000, fundingAccountId: "w_maintenance" }, NOW);
     expect(payment.lines).toEqual([
-      { account: "Accounts payable", debit: 1_250_000, credit: 0 },
-      { account: "Darb subwallet: Maintenance projects", debit: 0, credit: 1_250_000 },
+      { account: "Accounts payable", debit: 1_265_000, credit: 0 },
+      { account: "Darb subwallet: Maintenance projects", debit: 0, credit: 1_265_000 },
     ]);
     expect(acc.markPayablePaid(store, bill.id)?.status).toBe("paid");
   });

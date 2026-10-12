@@ -180,7 +180,7 @@ export function UploadInvoiceDialog({ className }: { className?: string }) {
         <Upload aria-hidden />
         {t.bills.uploadInvoice}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" closeLabel={t.ui.close}>
         <DialogHeader>
           <DialogTitle>{t.upload.title}</DialogTitle>
           <DialogDescription>{t.upload.description}</DialogDescription>

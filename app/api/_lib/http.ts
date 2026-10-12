@@ -7,6 +7,7 @@ import { ServiceError } from "@/lib/server/errors";
 import { loadStore, withStore } from "@/lib/server/store";
 import { makeCtx, type Ctx } from "@/lib/server/context";
 import { diskFiles } from "@/lib/server/files";
+import { runScheduler } from "@/lib/server/services/scheduler";
 
 export type Params<K extends string> = { params: Promise<Record<K, string>> };
 
@@ -35,6 +36,32 @@ export async function read(fn: (ctx: Ctx) => unknown | Promise<unknown>): Promis
 export async function mutate(fn: (ctx: Ctx) => unknown | Promise<unknown>, status = 200): Promise<NextResponse> {
   try {
     return json(await withStore((store) => fn(ctxFor(store))), status);
+  } catch (err) {
+    return errorJson(err);
+  }
+}
+
+/** Each user action moves the demo clock on by a minute, so the activity log reads in order. */
+export const ACTION_TICK_MS = 60_000;
+
+/**
+ * A user action (create, edit, submit, approve, reject, cancel/discard, process email, supplier and IBAN steps,
+ * runs): advances the demo clock by ACTION_TICK_MS, runs the service, then runs the scheduler. Saved only if
+ * nothing threw (so a refused action does not move the clock). Demo controls and alert reads use mutate().
+ */
+export async function act(fn: (ctx: Ctx) => unknown | Promise<unknown>, status = 200): Promise<NextResponse> {
+  try {
+    return json(
+      await withStore(async (store) => {
+        const ctx = ctxFor(store);
+        ctx.now = new Date(ctx.now.getTime() + ACTION_TICK_MS);
+        store.clock.now = ctx.now.toISOString();
+        const result = await fn(ctx);
+        runScheduler(ctx);
+        return result;
+      }),
+      status,
+    );
   } catch (err) {
     return errorJson(err);
   }
@@ -140,5 +167,5 @@ export function fieldKeys(b: Body, key: string): BillFieldKey[] | undefined {
   return v as BillFieldKey[] | undefined;
 }
 
-const DISPLAY: readonly DisplayStatus[] = ["draft", "awaiting_approval", "scheduled", "paid", "failed", "cancelled", "overdue"];
+const DISPLAY = ["draft", "awaiting_approval", "scheduled", "paid", "failed", "cancelled", "discarded", "overdue"] as const satisfies readonly DisplayStatus[];
 export const isDisplayStatus = (v: unknown): v is DisplayStatus => typeof v === "string" && (DISPLAY as readonly string[]).includes(v);

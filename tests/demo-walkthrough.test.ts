@@ -17,6 +17,7 @@ import * as bills from "@/app/api/bills/route";
 import * as bill from "@/app/api/bills/[id]/route";
 import * as billSubmit from "@/app/api/bills/[id]/submit/route";
 import * as billCancel from "@/app/api/bills/[id]/cancel/route";
+import * as billDiscard from "@/app/api/bills/[id]/discard/route";
 import * as files from "@/app/api/files/[id]/route";
 import * as payees from "@/app/api/payees/route";
 import * as payee from "@/app/api/payees/[id]/route";
@@ -120,8 +121,8 @@ describe("Step 1 — forward two invoices to the bills inbox (BP-01, BP-02, BP-0
       supplierVat: "310387452600003",
       invoiceNumber: "INV-2026-0451",
       issueDate: "2026-10-13",
-      vat: 586_957,
-      total: 4_500_000,
+      vat: 600_000,
+      total: 4_600_000,
       needsReview: [],
       file: { name: "INV-2026-0451-cool-breeze.pdf", mime: "application/pdf" },
     });
@@ -154,13 +155,22 @@ describe("Step 2 — upload the first invoice again (BP-04)", () => {
     expect(existsSync(path.join(dataDir, "files", `${body.bill.file!.id}.pdf`))).toBe(true); // stored in the isolated data dir
   });
 
-  it("BP-04: submitting the duplicate is refused; it is cancelled instead", async () => {
+  it("BP-04: submitting the duplicate is refused; the copy is discarded and drops out of the bills list", async () => {
     const submit = await call<ApiError>(billSubmit.POST, "POST", "/api/bills/b_3/submit", { params: { id: "b_3" }, json: { payDate: "2026-10-15" } });
     expect(submit.status).toBe(409);
     expect(submit.body.error.code).toBe("duplicate_unresolved");
-    const cancel = await call<{ bill: { status: string; cancelledBy: string } }>(billCancel.POST, "POST", "/api/bills/b_3/cancel", { params: { id: "b_3" } });
-    expect(cancel.status).toBe(200);
-    expect(cancel.body.bill).toMatchObject({ status: "cancelled", cancelledBy: "u_noura" });
+    const original = await call<ApiError>(billDiscard.POST, "POST", "/api/bills/b_1/discard", { params: { id: "b_1" } });
+    expect(original.status).toBe(409); // only a flagged duplicate can be discarded
+    expect(original.body.error.code).toBe("not_duplicate");
+    const discard = await call<{ bill: { status: string; discardedBy: string } }>(billDiscard.POST, "POST", "/api/bills/b_3/discard", { params: { id: "b_3" } });
+    expect(discard.status).toBe(200);
+    expect(discard.body.bill).toMatchObject({ status: "discarded", discardedBy: "u_noura" });
+    const cancel = await call<ApiError>(billCancel.POST, "POST", "/api/bills/b_3/cancel", { params: { id: "b_3" } });
+    expect(cancel.body.error.code).toBe("already_discarded");
+    const { body: list } = await call<{ rows: BillRow[] }>(bills.GET, "GET", "/api/bills");
+    expect(list.rows.some((r) => r.bill.id === "b_3")).toBe(false);
+    const { body: discarded } = await call<{ rows: BillRow[] }>(bills.GET, "GET", "/api/bills?status=discarded");
+    expect(discarded.rows.map((r) => r.bill.id)).toEqual(["b_3"]);
   });
 });
 
@@ -237,8 +247,11 @@ describe("Step 3 — add the supplier, then change its IBAN (BP-05, BP-06, BP-07
     const approved = log.events.find((e) => e.action === "supplier.bank_change_approved")!;
     expect(requested).toMatchObject({ actorId: "u_noura", before: { iban: IBAN_B }, after: { iban: IBAN_B_NEW } });
     expect(approved).toMatchObject({ actorId: "u_reem", before: { iban: IBAN_B }, after: { iban: IBAN_B_NEW, requestedBy: "u_noura", approvedBy: "u_reem" } });
-    expect(requested.at).toBe("2026-10-15T13:10:00.000Z");
-    expect((approved.after as { requestedAt: string; approvedAt: string }).approvedAt).toBe("2026-10-15T13:10:00.000Z");
+    // Each action moves the demo clock on a minute: the request comes first, the approval a minute later.
+    const times = approved.after as { requestedAt: string; approvedAt: string };
+    expect(times.requestedAt).toBe(requested.at);
+    expect(Date.parse(times.approvedAt) - Date.parse(requested.at)).toBe(60_000);
+    expect(requested.at > "2026-10-15T13:10:00.000Z").toBe(true);
 
     const { body: detail } = await call<{ supplier: Supplier; audit: AuditEvent[] }>(payee.GET, "GET", "/api/payees/s_1", { params: { id: "s_1" } });
     expect(detail.audit.map((e) => e.action)).toEqual(expect.arrayContaining(["supplier.created", "supplier.bank_change_requested", "supplier.bank_change_approved"]));
@@ -297,15 +310,15 @@ describe("Step 4 — put three bills in a dated run (BP-09, BP-10, BP-18)", () =
     expect(body.checks.submit).toEqual({ ok: true });
   });
 
-  it("BP-09: before submitting, the app shows rail and arrival — SAR 45,000 on Thursday 16:10 arrives Sunday 18 October", async () => {
+  it("BP-09: before submitting, the app shows rail and arrival — SAR 46,000 on Thursday 16:10 arrives Sunday 18 October", async () => {
     const { status, body } = await call<{ quotes: BillQuote[] }>(runQuote.POST, "POST", "/api/payment-runs/quote", {
       json: { billIds: ["b_1", "b_2", "b_gol_0917"], payDate: "2026-10-15" },
     });
     expect(status).toBe(200);
     const byBill = Object.fromEntries(body.quotes.map((q) => [q.billId, q]));
-    expect(byBill.b_1).toMatchObject({ amount: 4_500_000, rail: "sarie", arrivalDate: "2026-10-18", sameDay: false, reason: "sarie_after_cutoff" });
+    expect(byBill.b_1).toMatchObject({ amount: 4_600_000, rail: "sarie", arrivalDate: "2026-10-18", sameDay: false, reason: "sarie_after_cutoff" });
     expect(byBill.b_2).toMatchObject({ amount: 805_000, rail: "instant", arrivalDate: "2026-10-15" });
-    expect(byBill.b_gol_0917).toMatchObject({ amount: 1_250_000, rail: "instant", arrivalDate: "2026-10-15" });
+    expect(byBill.b_gol_0917).toMatchObject({ amount: 1_265_000, rail: "instant", arrivalDate: "2026-10-15" });
     stepFourQuotes = body.quotes;
   });
 
@@ -328,7 +341,7 @@ describe("Step 4 — put three bills in a dated run (BP-09, BP-10, BP-18)", () =
     const { body } = await call<BillsSummary>(summary.GET, "GET", "/api/summary");
     const main = body.accounts.find((a) => a.id === "main")!;
     const sub = body.accounts.find((a) => a.id === "w_maintenance")!;
-    expect(main).toMatchObject({ balance: 18_000_000, scheduled: 0, available: 18_000_000, pendingApproval: 4_500_000 + 1_250_000 + 324_055 });
+    expect(main).toMatchObject({ balance: 18_000_000, scheduled: 0, available: 18_000_000, pendingApproval: 4_600_000 + 1_265_000 + 324_055 });
     expect(sub).toMatchObject({ balance: 4_000_000, scheduled: 0, available: 4_000_000, pendingApproval: 805_000 });
   });
 });
@@ -370,7 +383,7 @@ describe("Step 5 — the approver approves the run (BP-08, BP-17)", () => {
     const quoted = stepFourQuotes.find((q) => q.billId === "b_1")!;
     expect(items.b_1.quote).toEqual(quoted);
     expect(items.b_1.payment!.expectedArrival).toBe(quoted.arrivalDate);
-    expect(body.totals).toMatchObject({ amount: 6_555_000, count: 3, byAccount: { main: 5_750_000, w_maintenance: 805_000 } });
+    expect(body.totals).toMatchObject({ amount: 6_670_000, count: 3, byAccount: { main: 5_865_000, w_maintenance: 805_000 } });
   });
 });
 
@@ -444,10 +457,10 @@ describe("Step 6 — what the supplier receives and what lands in accounting (BP
     expect([notice.subjectEn, notice.bodyEn, notice.subjectAr, notice.bodyAr].join("\n")).not.toMatch(NO_IBAN);
   });
 
-  it("BP-18: the subwallet paid 8,050.00 and the main balance 57,500.00", async () => {
+  it("BP-18: the subwallet paid 8,050.00 and the main balance 58,650.00", async () => {
     const { body } = await call<BillsSummary>(summary.GET, "GET", "/api/summary");
     expect(body.accounts.find((a) => a.id === "w_maintenance")).toMatchObject({ balance: 4_000_000 - 805_000, scheduled: 0 });
-    expect(body.accounts.find((a) => a.id === "main")).toMatchObject({ balance: 18_000_000 - 5_750_000, scheduled: 0 });
+    expect(body.accounts.find((a) => a.id === "main")).toMatchObject({ balance: 18_000_000 - 5_865_000, scheduled: 0 });
   });
 });
 
@@ -459,10 +472,9 @@ describe("Step 7 — the bills view: owed per supplier, SADAD in the same list (
     expect(status).toBe(200);
     expect(body.today).toBe("2026-10-18");
     const rows = Object.fromEntries(body.rows.map((r) => [r.bill.id, r]));
-    expect(Object.keys(rows).sort()).toEqual(["b_1", "b_2", "b_3", "b_gol_0822", "b_gol_0917", "b_sadad_power"]);
+    expect(Object.keys(rows).sort()).toEqual(["b_1", "b_2", "b_gol_0822", "b_gol_0917", "b_sadad_power"]); // the discarded copy is hidden
     expect(rows.b_sadad_power).toMatchObject({ displayStatus: "awaiting_approval", bill: { kind: "sadad", total: 324_055, dueDate: "2026-10-25" }, quote: { rail: "sadad" } });
     expect(rows.b_1.displayStatus).toBe("paid");
-    expect(rows.b_3.displayStatus).toBe("cancelled");
     for (const r of body.rows) expect(["draft", "awaiting_approval", "scheduled", "paid", "failed", "cancelled", "overdue"]).toContain(r.displayStatus);
   });
 
@@ -471,7 +483,7 @@ describe("Step 7 — the bills view: owed per supplier, SADAD in the same list (
     const sadad = body.owedBySupplier.find((g) => g.key === "sadad:901");
     expect(sadad).toMatchObject({ kind: "sadad", name: "National Power Utility (demo biller)", total: 324_055, count: 1 });
     expect(body.owedTotal).toBe(body.owedBySupplier.reduce((s, g) => s + g.total, 0));
-    expect(body.counts).toMatchObject({ paid: 4, awaiting_approval: 1, cancelled: 1, overdue: 0 });
+    expect(body.counts).toMatchObject({ paid: 4, awaiting_approval: 1, cancelled: 0, discarded: 1, overdue: 0 });
   });
 
   it("BP-11: filters by status and due date", async () => {
@@ -516,5 +528,60 @@ describe("Reset", () => {
     const { body: payeeList } = await call<{ suppliers: { supplier: Supplier }[] }>(payees.GET, "GET", "/api/payees");
     expect(payeeList.suppliers.map((r) => r.supplier.id)).toEqual(["s_green_oasis"]);
     expect(existsSync(path.join(dataDir, "files"))).toBe(false); // uploads cleared: ids restart from the seed
+  });
+});
+
+// ---------- Clock ticks ----------
+
+describe("Each user action moves the demo clock on a minute", () => {
+  it("activity log timestamps strictly increase across a sequence of actions; refused actions and reads do not tick", async () => {
+    await call<DemoState>(demoReset.POST, "POST", "/api/demo/reset");
+    const clock = async () => (await call<DemoState>(demoState.GET, "GET", "/api/demo/state")).body.now;
+    const eventsSince = async (n: number) => (await call<{ events: AuditEvent[] }>(audit.GET, "GET", "/api/audit?limit=1000")).body.events.reverse().slice(n);
+    let seen = (await eventsSince(0)).length;
+    const groups: AuditEvent[][] = [];
+    const step = async (fn: () => Promise<{ status: number }>, expectedStatus = 200) => {
+      expect((await fn()).status).toBe(expectedStatus);
+      const fresh = await eventsSince(seen);
+      seen += fresh.length;
+      groups.push(fresh);
+    };
+
+    expect(await clock()).toBe("2026-10-15T13:10:00.000Z");
+    await step(() => call(inboxProcess.POST, "POST", "/api/inbox/e_october/process", { params: { emailId: "e_october" } }));
+    await step(
+      () =>
+        call(payees.POST, "POST", "/api/payees", {
+          json: { nameEn: "Cool Breeze HVAC Contracting Co.", vatNumber: "310387452600003", iban: IBAN_B, noticeEmail: "finance@coolbreeze-hvac.example" },
+        }),
+      201,
+    );
+    await step(() => call(bill.PATCH, "PATCH", "/api/bills/b_2", { params: { id: "b_2" }, json: { reviewed: ["invoiceNumber", "dueDate", "vat"] } }));
+    await step(() => call(runs.POST, "POST", "/api/payment-runs", { json: { name: "Ticks", payDate: "2026-10-15", billIds: ["b_1", "b_2", "b_gol_0917"] } }), 201);
+    await step(() => call(runSubmit.POST, "POST", "/api/payment-runs/run_1/submit", { params: { id: "run_1" } }));
+
+    // A refused action leaves the clock where it was; a read never moves it.
+    const before = await clock();
+    expect((await call(runApprove.POST, "POST", "/api/payment-runs/run_1/approve", { params: { id: "run_1" } })).status).toBe(403);
+    await call(runs.GET, "GET", "/api/payment-runs");
+    expect(await clock()).toBe(before);
+
+    await actAs("u_faisal"); // the user switcher is a demo control: no tick
+    expect(await clock()).toBe(before);
+    await step(() => call(runApprove.POST, "POST", "/api/payment-runs/run_1/approve", { params: { id: "run_1" } }));
+
+    expect(groups.every((g) => g.length > 0)).toBe(true);
+    for (let i = 1; i < groups.length; i++) {
+      const prevLatest = groups[i - 1].map((e) => e.at).sort().at(-1)!;
+      for (const e of groups[i]) expect(e.at > prevLatest, `${e.action} at ${e.at} after ${prevLatest}`).toBe(true);
+    }
+    expect(await clock()).toBe("2026-10-15T13:16:00.000Z"); // six actions, one minute each
+    // Approved at 16:16, still after the 15:58 cut-off: the 46,000 SARIE payment arrives Sunday 18 October.
+    const { body } = await call<RunView>(run.GET, "GET", "/api/payment-runs/run_1", { params: { id: "run_1" } });
+    expect(body.items.find((i) => i.bill.id === "b_1")!.payment).toMatchObject({ rail: "sarie", expectedArrival: "2026-10-18" });
+
+    await actAs("u_noura");
+    await call<DemoState>(demoReset.POST, "POST", "/api/demo/reset");
+    expect(await clock()).toBe("2026-10-15T13:10:00.000Z");
   });
 });

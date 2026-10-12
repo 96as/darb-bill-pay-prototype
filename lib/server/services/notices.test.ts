@@ -21,10 +21,10 @@ describe("supplier payment notice", () => {
     expect(notice).toMatchObject({ channel: "email", to: "finance@coolbreeze-hvac.example", paymentId: payment.id, sentAt: payment.sentAt });
     for (const text of [notice.subjectEn, notice.bodyEn]) expect(text).toContain("INV-2026-0451");
     expect(notice.bodyEn).toContain("Sahab Facility Services Co.");
-    expect(notice.bodyEn).toContain("45,000.00 SAR");
+    expect(notice.bodyEn).toContain("46,000.00 SAR");
     expect(notice.bodyEn).toContain(`Transfer reference: ${payment.transferRef}`);
     expect(notice.bodyAr).toContain("شركة سحاب للخدمات المرفقية");
-    expect(notice.bodyAr).toContain("45,000.00 ر.س");
+    expect(notice.bodyAr).toContain("46,000.00 ر.س");
     expect(notice.bodyAr).toContain(payment.transferRef!);
     expect(notice.subjectAr).toContain("INV-2026-0451");
 

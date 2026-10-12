@@ -25,15 +25,15 @@ const MESSAGES: Record<string, Messages> = {
   },
   run_creator_cannot_approve: {
     en: "You created this run, so someone else must approve it.",
-    ar: "أنت من أنشأ دفعة السداد هذه، لذا يجب أن يعتمدها شخص آخر.",
+    ar: "أنت من أنشأ دفعة الموردين هذه، لذا يجب أن يعتمدها شخص آخر.",
   },
   run_editor_cannot_approve: {
     en: "You edited this run, so someone else must approve it.",
-    ar: "أنت من عدّل دفعة السداد هذه، لذا يجب أن يعتمدها شخص آخر.",
+    ar: "أنت من عدّل دفعة الموردين هذه، لذا يجب أن يعتمدها شخص آخر.",
   },
   run_submitter_cannot_approve: {
     en: "You submitted this run, so someone else must approve it.",
-    ar: "أنت من أرسل دفعة السداد هذه، لذا يجب أن يعتمدها شخص آخر.",
+    ar: "أنت من أرسل دفعة الموردين هذه، لذا يجب أن يعتمدها شخص آخر.",
   },
   requester_cannot_approve: {
     en: "You requested this IBAN change, so someone else must approve it.",
@@ -95,10 +95,10 @@ const MESSAGES: Record<string, Messages> = {
   },
   run_not_awaiting_approval: {
     en: "This run isn't waiting for approval anymore.",
-    ar: "دفعة السداد هذه لم تعد بانتظار الموافقة.",
+    ar: "دفعة الموردين هذه لم تعد بانتظار الموافقة.",
   },
   run_empty: { en: "Add at least one bill to the run.", ar: "أضف فاتورة واحدة على الأقل إلى الدفعة." },
-  in_run: { en: "This bill is already in a payment run.", ar: "هذه الفاتورة ضمن دفعة سداد بالفعل." },
+  in_run: { en: "This bill is already in a payment run.", ar: "هذه الفاتورة ضمن دفعة موردين بالفعل." },
   not_draft: { en: "Only a draft can be changed or submitted.", ar: "يمكن تعديل المسودة أو إرسالها فقط." },
   needs_review: { en: "Check the flagged fields first.", ar: "راجع الحقول المعلَّمة أولًا." },
   duplicate_unresolved: {
@@ -115,7 +115,7 @@ const MESSAGES: Record<string, Messages> = {
   already_cancelled: { en: "This bill is already cancelled.", ar: "هذه الفاتورة ملغاة بالفعل." },
   not_paid: {
     en: "A confirmation is available once the bill is paid.",
-    ar: "يتوفر تأكيد الدفع بعد سداد الفاتورة.",
+    ar: "يتوفر تأكيد الدفع بعد دفع الفاتورة.",
   },
   not_found: { en: "Not found. It may have been removed.", ar: "غير موجود. ربما حُذف." },
 

@@ -18,7 +18,7 @@ import { parseZatcaInvoice, InvoiceXmlError } from "@/lib/domain/zatca";
 import { extractEmbeddedXml } from "@/lib/domain/pdf-xml";
 import { UnsafeXmlError, decodeXmlBytes } from "@/lib/domain/xml-safety";
 import { findDuplicate, type DuplicateMatch } from "@/lib/domain/duplicates";
-import { canApproveBill, canCancel, canPrepare, materialEditRestartsApproval, type MaterialSnapshot } from "@/lib/domain/permissions";
+import { canApproveBill, canCancel, canDiscardDuplicate, canPrepare, materialEditRestartsApproval, type MaterialSnapshot } from "@/lib/domain/permissions";
 import { checkDaily, checkPerPayment } from "@/lib/domain/limits";
 import { assertTransition, displayStatus } from "@/lib/domain/status";
 import { isISODate } from "@/lib/domain/time";
@@ -33,7 +33,9 @@ import { audit, auditFor } from "../audit";
 import { newId } from "../ids";
 import {
   billLabel,
+  bankChangeInfo,
   committedForDay,
+  type BankChangeInfo,
   findSupplier,
   getBill,
   latestPayment,
@@ -501,6 +503,23 @@ export function dismissDuplicate(ctx: Ctx, id: string, actorId: string): Bill {
   return bill;
 }
 
+/** BP-04 "Discard this copy": a flagged duplicate draft is thrown away (terminal, hidden from the default list). */
+export function discardDuplicate(ctx: Ctx, id: string, actorId: string): Bill {
+  prepare(ctx, actorId);
+  const bill = getBill(ctx, id);
+  ensure(canDiscardDuplicate(bill), 409);
+  assertTransition(bill.status, "discarded");
+  bill.status = "discarded";
+  bill.discardedBy = actorId;
+  bill.discardedAt = ctx.now.toISOString();
+  audit(ctx, actorId, "bill.discarded", { type: "bill", id: bill.id }, { status: "draft" }, {
+    status: "discarded",
+    duplicateOf: bill.duplicateOf,
+    duplicateReason: bill.duplicateReason,
+  });
+  return bill;
+}
+
 // ---------- Submit / approve / reject / cancel ----------
 
 export interface SubmitInput {
@@ -606,6 +625,8 @@ export interface BillRow {
   /** Rail and arrival: the payment's when approved, else a live quote for the pay date. */
   quote?: RailQuote;
   run?: { id: string; name: string; status: string };
+  /** Present when the supplier's IBAN was changed (approved) in the last 30 days. */
+  bankChange?: BankChangeInfo;
 }
 
 function quoteForBill(ctx: Ctx, bill: Bill, payment: Payment | undefined): RailQuote | undefined {
@@ -627,15 +648,17 @@ function toRow(ctx: Ctx, bill: Bill): BillRow {
     payment,
     quote: quoteForBill(ctx, bill, payment),
     run: run ? { id: run.id, name: run.name, status: run.status } : undefined,
+    bankChange: bill.kind === "supplier" ? bankChangeInfo(ctx, supplier) : undefined,
   });
 }
 
-const isOpen = (s: DisplayStatus) => s !== "paid" && s !== "cancelled";
+const isOpen = (s: DisplayStatus) => s !== "paid" && s !== "cancelled" && s !== "discarded";
 
 export function listBills(ctx: Ctx, filters: BillListFilters = {}): BillRow[] {
   return ctx.store.bills
     .map((b) => toRow(ctx, b))
-    .filter((r) => !filters.status || r.displayStatus === filters.status)
+    // Discarded duplicates are hidden unless asked for (?status=discarded).
+    .filter((r) => (filters.status ? r.displayStatus === filters.status : r.displayStatus !== "discarded"))
     .filter((r) => !filters.dueBefore || (!!r.bill.dueDate && r.bill.dueDate < filters.dueBefore))
     .sort((a, b) => {
       const ao = isOpen(a.displayStatus);
@@ -727,7 +750,7 @@ export function billsSummary(ctx: Ctx): BillsSummary {
     const pendingApproval = awaiting.filter((b) => b.fundingAccountId === a.id).reduce((s, b) => s + b.total, 0);
     return { id: a.id, kind: a.kind, name: a.name, nameAr: a.nameAr, balance: a.balance, scheduled, available: a.balance - scheduled, pendingApproval };
   });
-  const counts = { draft: 0, awaiting_approval: 0, scheduled: 0, paid: 0, failed: 0, cancelled: 0, overdue: 0 } as Record<DisplayStatus, number>;
+  const counts = { draft: 0, awaiting_approval: 0, scheduled: 0, paid: 0, failed: 0, cancelled: 0, discarded: 0, overdue: 0 } satisfies Record<DisplayStatus, number>;
   const groups = new Map<string, BillsSummary["owedBySupplier"][number]>();
   for (const bill of ctx.store.bills) {
     const status = displayStatus(bill, day);

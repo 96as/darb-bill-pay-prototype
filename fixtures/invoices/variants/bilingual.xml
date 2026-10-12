@@ -91,7 +91,7 @@
   <cac:AdditionalDocumentReference>
     <cbc:ID>QR</cbc:ID>
     <cac:Attachment>
-      <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">AUbYtNix2YPYqSDYp9mE2YbYs9mK2YUg2KfZhNio2KfYsdivINmE2YTZhdmC2KfZiNmE2KfYqiDZiNin2YTYqtmD2YrZitmBAg8zMTAzODc0NTI2MDAwMDMDEzIwMjYtMTAtMTNUMTA6NDI6MTcECDQ1MDAwLjAwBQc1ODY5LjU3BkhSa0ZMUlMxSlRsWlBTVU5GTFVSSlIwVlRWSHh3Y205MGIzUjVjR1VnWm1sNGRIVnlaWHh1YjNRZ1lTQnlaV0ZzSUdoaGMyZz0HaFJrRkxSUzFGUTBSVFFTMVRTVWRPUVZSVlVrVjhjSEp2ZEc5MGVYQmxJR1pwZUhSMWNtVjhibTkwSUdsemMzVmxaQ0JpZVNCYVFWUkRRWHgzYVd4c0lHNXZkQ0IyWVd4cFpHRjBaUT09CCdGQUtFLUVDRFNBLVBVQkxJQy1LRVl8cHJvdG90eXBlIGZpeHR1cmU=</cbc:EmbeddedDocumentBinaryObject>
+      <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">AUbYtNix2YPYqSDYp9mE2YbYs9mK2YUg2KfZhNio2KfYsdivINmE2YTZhdmC2KfZiNmE2KfYqiDZiNin2YTYqtmD2YrZitmBAg8zMTAzODc0NTI2MDAwMDMDEzIwMjYtMTAtMTNUMTA6NDI6MTcECDQ2MDAwLjAwBQc2MDAwLjAwBkhSa0ZMUlMxSlRsWlBTVU5GTFVSSlIwVlRWSHh3Y205MGIzUjVjR1VnWm1sNGRIVnlaWHh1YjNRZ1lTQnlaV0ZzSUdoaGMyZz0HaFJrRkxSUzFGUTBSVFFTMVRTVWRPUVZSVlVrVjhjSEp2ZEc5MGVYQmxJR1pwZUhSMWNtVjhibTkwSUdsemMzVmxaQ0JpZVNCYVFWUkRRWHgzYVd4c0lHNXZkQ0IyWVd4cFpHRjBaUT09CCdGQUtFLUVDRFNBLVBVQkxJQy1LRVl8cHJvdG90eXBlIGZpeHR1cmU=</cbc:EmbeddedDocumentBinaryObject>
     </cac:Attachment>
   </cac:AdditionalDocumentReference>
   <cac:Signature>
@@ -183,10 +183,10 @@
     <cbc:Note>Net 30 days from invoice date | السداد خلال 30 يوماً من تاريخ الفاتورة</cbc:Note>
   </cac:PaymentTerms>
   <cac:TaxTotal>
-    <cbc:TaxAmount currencyID="SAR">5869.57</cbc:TaxAmount>
+    <cbc:TaxAmount currencyID="SAR">6000.00</cbc:TaxAmount>
     <cac:TaxSubtotal>
-      <cbc:TaxableAmount currencyID="SAR">39130.43</cbc:TaxableAmount>
-      <cbc:TaxAmount currencyID="SAR">5869.57</cbc:TaxAmount>
+      <cbc:TaxableAmount currencyID="SAR">40000.00</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="SAR">6000.00</cbc:TaxAmount>
       <cac:TaxCategory>
         <cbc:ID schemeID="UN/ECE 5305" schemeAgencyID="6">S</cbc:ID>
         <cbc:Percent>15.00</cbc:Percent>
@@ -197,23 +197,23 @@
     </cac:TaxSubtotal>
   </cac:TaxTotal>
   <cac:TaxTotal>
-    <cbc:TaxAmount currencyID="SAR">5869.57</cbc:TaxAmount>
+    <cbc:TaxAmount currencyID="SAR">6000.00</cbc:TaxAmount>
   </cac:TaxTotal>
   <cac:LegalMonetaryTotal>
-    <cbc:LineExtensionAmount currencyID="SAR">39130.43</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="SAR">39130.43</cbc:TaxExclusiveAmount>
-    <cbc:TaxInclusiveAmount currencyID="SAR">45000.00</cbc:TaxInclusiveAmount>
+    <cbc:LineExtensionAmount currencyID="SAR">40000.00</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="SAR">40000.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="SAR">46000.00</cbc:TaxInclusiveAmount>
     <cbc:AllowanceTotalAmount currencyID="SAR">0.00</cbc:AllowanceTotalAmount>
     <cbc:PrepaidAmount currencyID="SAR">0.00</cbc:PrepaidAmount>
-    <cbc:PayableAmount currencyID="SAR">45000.00</cbc:PayableAmount>
+    <cbc:PayableAmount currencyID="SAR">46000.00</cbc:PayableAmount>
   </cac:LegalMonetaryTotal>
   <cac:InvoiceLine>
     <cbc:ID>1</cbc:ID>
     <cbc:InvoicedQuantity unitCode="EA">3.000000</cbc:InvoicedQuantity>
-    <cbc:LineExtensionAmount currencyID="SAR">16850.04</cbc:LineExtensionAmount>
+    <cbc:LineExtensionAmount currencyID="SAR">18000.00</cbc:LineExtensionAmount>
     <cac:TaxTotal>
-      <cbc:TaxAmount currencyID="SAR">2527.51</cbc:TaxAmount>
-      <cbc:RoundingAmount currencyID="SAR">19377.55</cbc:RoundingAmount>
+      <cbc:TaxAmount currencyID="SAR">2700.00</cbc:TaxAmount>
+      <cbc:RoundingAmount currencyID="SAR">20700.00</cbc:RoundingAmount>
     </cac:TaxTotal>
     <cac:Item>
       <cbc:Name>Quarterly preventive maintenance, water-cooled chillers – Q4 2026 | صيانة وقائية ربع سنوية للمبردات المائية – الربع الرابع 2026</cbc:Name>
@@ -229,16 +229,16 @@
       </cac:ClassifiedTaxCategory>
     </cac:Item>
     <cac:Price>
-      <cbc:PriceAmount currencyID="SAR">5616.68</cbc:PriceAmount>
+      <cbc:PriceAmount currencyID="SAR">6000.00</cbc:PriceAmount>
     </cac:Price>
   </cac:InvoiceLine>
   <cac:InvoiceLine>
     <cbc:ID>2</cbc:ID>
     <cbc:InvoicedQuantity unitCode="SET">1.000000</cbc:InvoicedQuantity>
-    <cbc:LineExtensionAmount currencyID="SAR">22280.39</cbc:LineExtensionAmount>
+    <cbc:LineExtensionAmount currencyID="SAR">22000.00</cbc:LineExtensionAmount>
     <cac:TaxTotal>
-      <cbc:TaxAmount currencyID="SAR">3342.06</cbc:TaxAmount>
-      <cbc:RoundingAmount currencyID="SAR">25622.45</cbc:RoundingAmount>
+      <cbc:TaxAmount currencyID="SAR">3300.00</cbc:TaxAmount>
+      <cbc:RoundingAmount currencyID="SAR">25300.00</cbc:RoundingAmount>
     </cac:TaxTotal>
     <cac:Item>
       <cbc:Name>Replacement compressor parts – scroll compressor kit and oil filter, supply and installation | قطع غيار للضاغط – طقم ضاغط حلزوني وفلتر زيت، توريد وتركيب</cbc:Name>
@@ -254,7 +254,7 @@
       </cac:ClassifiedTaxCategory>
     </cac:Item>
     <cac:Price>
-      <cbc:PriceAmount currencyID="SAR">22280.39</cbc:PriceAmount>
+      <cbc:PriceAmount currencyID="SAR">22000.00</cbc:PriceAmount>
     </cac:Price>
   </cac:InvoiceLine>
 </Invoice>

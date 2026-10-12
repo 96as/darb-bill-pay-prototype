@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CircleCheck, Info } from "lucide-react";
+import { CircleCheck } from "lucide-react";
+import { GatedButton, GateReason, type GateLike, type Unblock } from "@/components/darb/gated-button";
 import { Amount } from "@/components/darb/amount";
 import { PaymentStatusBadge } from "@/components/darb/payment-badges";
 import { formatArrival, formatInstant, payeeName } from "@/components/darb/payment-format";
@@ -12,46 +13,75 @@ import { useI18n } from "@/lib/i18n/client";
 import type { Person, RunBillItem } from "@/app/(app)/bills/runs/data";
 import { BottomSheet } from "./bottom-sheet";
 
-/** Sticky bottom bar: Decline (outline) + Approve (primary). Disabled with the reason for prepare-only users and makers. */
+/**
+ * Sticky bottom bar: Decline (outline) + Approve (primary). When Approve is blocked, one reason under
+ * the bar says why and offers the action that unblocks it (e.g. "Switch user").
+ * `onApprove` should open the Confirm and release sheet, not approve directly.
+ */
 export function ApproveBar({
   approveLabel,
   declineTitle,
-  disabled,
-  declineDisabled = disabled,
-  note,
+  gate,
+  declineGate = gate,
+  reason,
+  unblock,
   busy,
   onApprove,
   onDecline,
 }: {
   approveLabel: string;
   declineTitle: string;
-  disabled: boolean;
-  /** Decline is gated separately (role and maker-checker only); defaults to `disabled`. */
-  declineDisabled?: boolean;
-  note?: string | null;
+  gate: GateLike;
+  /** Decline is gated separately (role and maker-checker only); defaults to `gate`. */
+  declineGate?: GateLike;
+  /** The reason in the UI language (falls back to the gate's own text). */
+  reason?: string | null;
+  unblock?: Unblock;
   busy: boolean;
   onApprove: () => void;
   onDecline: () => void;
 }) {
+  const reasonId = "mobile-approve-reason";
   const { t } = useI18n();
   const m = t.payments.mobile;
   const [confirm, setConfirm] = useState(false);
   return (
     <>
-      <div className="sticky bottom-0 z-10 mt-auto border-t bg-background/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        {disabled && note ? (
-          <p className="mb-2.5 flex items-start gap-1.5 text-xs text-muted-foreground" role="note">
-            <Info className="mt-px size-3.5 shrink-0" aria-hidden />
-            <span>{note}</span>
-          </p>
+      {/* --demo-fab-clearance: room for a floating demo button at the bottom of the viewport (0 by default). */}
+      <div className="sticky bottom-0 z-10 mt-auto border-t bg-background/95 px-3 pt-3 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+var(--demo-fab-clearance,0px))] backdrop-blur">
+        {!gate.ok ? (
+          <GateReason
+            id={reasonId}
+            gate={reason ? { ok: false, message: reason } : gate}
+            unblock={unblock}
+            className="mb-2.5"
+          />
         ) : null}
         <div className="flex gap-2">
-          <Button variant="outline" size="lg" className="h-11 px-3.5" disabled={declineDisabled || busy} onClick={() => setConfirm(true)}>
+          <GatedButton
+            gate={declineGate}
+            showReason={false}
+            describedBy={reasonId}
+            pending={busy}
+            variant="outline"
+            size="lg"
+            className="h-11 px-3.5"
+            onClick={() => setConfirm(true)}
+          >
             {m.decline}
-          </Button>
-          <Button size="lg" className="h-11 min-w-0 flex-1 px-2" disabled={disabled || busy} onClick={onApprove}>
+          </GatedButton>
+          <GatedButton
+            gate={gate}
+            showReason={false}
+            describedBy={reasonId}
+            pending={busy}
+            size="lg"
+            className="h-11 min-w-0 flex-1 px-2"
+            wrapperClassName="flex-1"
+            onClick={onApprove}
+          >
             <span className="truncate">{approveLabel}</span>
-          </Button>
+          </GatedButton>
         </div>
       </div>
       <BottomSheet open={confirm} onOpenChange={setConfirm} title={declineTitle} description={m.declineDescription}>

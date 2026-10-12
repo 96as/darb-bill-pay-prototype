@@ -1,9 +1,9 @@
-// GET /api/bills?status=&due_before=  ·  POST /api/bills (multipart "file", or JSON for a manual/SADAD bill)
+// GET /api/bills?status=&due_before= (discarded copies only with ?status=discarded)  ·  POST /api/bills (multipart "file", or JSON for a manual/SADAD bill)
 import { isISODate } from "@/lib/domain/time";
 import { ServiceError } from "@/lib/server/errors";
 import { today } from "@/lib/server/context";
 import { createManualBill, ingestFile, listBills, MAX_UPLOAD_BYTES } from "@/lib/server/services";
-import { actor, date, errorJson, isDisplayStatus, money, mutate, read, readBody, str, type Body } from "../_lib/http";
+import { actor, date, errorJson, isDisplayStatus, money, act, read, readBody, str, type Body } from "../_lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const dueBefore = url.searchParams.get("due_before") || undefined;
   return read((ctx) => {
     if (status !== undefined && !isDisplayStatus(status)) {
-      throw new ServiceError("invalid_field", "status must be draft, awaiting_approval, scheduled, paid, failed, cancelled or overdue", 400);
+      throw new ServiceError("invalid_field", "status must be draft, awaiting_approval, scheduled, paid, failed, cancelled, discarded or overdue", 400);
     }
     if (dueBefore !== undefined && !isISODate(dueBefore)) throw new ServiceError("invalid_field", "due_before must be a date (YYYY-MM-DD)", 400);
     return { today: today(ctx), rows: listBills(ctx, { status, dueBefore }) };
@@ -39,10 +39,10 @@ export async function POST(req: Request) {
       if (!(file instanceof File)) throw new ServiceError("missing_file", 'Send the invoice in the multipart field "file"', 400);
       if (file.size > MAX_UPLOAD_BYTES) throw new ServiceError("file_too_large", "Files up to 10 MB are accepted", 413);
       const bytes = new Uint8Array(await file.arrayBuffer());
-      return await mutate((ctx) => ingestFile(ctx, { bytes, filename: file.name, source: "upload", actorId: actor(ctx) }), 201);
+      return await act((ctx) => ingestFile(ctx, { bytes, filename: file.name, source: "upload", actorId: actor(ctx) }), 201);
     }
     const b = await readBody(req);
-    return await mutate(
+    return await act(
       (ctx) =>
         createManualBill(
           ctx,

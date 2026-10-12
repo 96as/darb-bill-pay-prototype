@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/darb/date-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useT } from "@/lib/i18n/client";
 import { DISPLAY_STATUSES } from "@/lib/ui/status";
@@ -67,12 +67,11 @@ export function BillsFilters({ filters, className }: { filters: Filters; classNa
         <label htmlFor="bills-due-before" className="text-xs text-muted-foreground">
           {t.bills.list.dueBefore}
         </label>
-        <Input
+        <DateInput
           id="bills-due-before"
-          type="date"
           value={filters.dueBefore ?? ""}
-          onChange={(e) => apply({ ...filters, dueBefore: e.target.value || undefined })}
-          className="h-9 w-44 bg-background"
+          onChange={(iso) => apply({ ...filters, dueBefore: iso || undefined })}
+          className="w-44"
         />
       </div>
       {hasFilters ? (

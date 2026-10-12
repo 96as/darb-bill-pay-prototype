@@ -73,7 +73,7 @@ function ChangeBankDialog({ supplierId, disabled }: { supplierId: string; disabl
         <KeyRound aria-hidden />
         {t.suppliers.detail.changeBank}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" closeLabel={t.ui.close}>
         <form
           className="grid gap-4"
           onSubmit={async (e) => {
@@ -100,7 +100,7 @@ function ChangeBankDialog({ supplierId, disabled }: { supplierId: string; disabl
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>{t.ui.cancel}</DialogClose>
-            <Button type="submit" disabled={!valid || pending}>
+            <Button type="submit" disabled={!valid || pending} aria-describedby={!valid ? "new-iban-hint" : undefined}>
               {pending ? t.ui.working : t.suppliers.detail.requestChange}
             </Button>
           </DialogFooter>
@@ -361,7 +361,7 @@ export function SupplierDetail({ view }: { view: SupplierDetailView }) {
 
       {view.pending ? <PendingChange view={view} /> : null}
 
-      <div className="grid items-start gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <Panel>
           <PanelHeader
             title={t.suppliers.detail.details}

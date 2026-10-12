@@ -1,6 +1,9 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { XIcon } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import { usePortalContainer } from "@/components/darb/portal-container";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +24,7 @@ export function BottomSheet({
   className?: string;
 }) {
   const container = usePortalContainer();
+  const t = useT();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal container={container}>
@@ -32,7 +36,13 @@ export function BottomSheet({
           )}
         >
           <span aria-hidden className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25" />
-          <div className="space-y-1 px-5 pt-3 pb-3">
+          <Dialog.Close
+            className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "absolute end-3 top-3")}
+            aria-label={t.payments.close}
+          >
+            <XIcon aria-hidden />
+          </Dialog.Close>
+          <div className="space-y-1 px-5 pt-3 pb-3 pe-12">
             <Dialog.Title className="text-base font-medium">{title}</Dialog.Title>
             {description ? <Dialog.Description className="text-sm text-muted-foreground">{description}</Dialog.Description> : null}
           </div>

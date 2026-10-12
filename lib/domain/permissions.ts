@@ -35,6 +35,9 @@ export type PermissionCode =
   | "nothing_to_confirm"
   | "maker_cannot_confirm"
   | "already_cancelled"
+  | "already_discarded"
+  | "not_duplicate"
+  | "not_draft"
   | "already_paid"
   | "payment_sent";
 
@@ -83,6 +86,14 @@ export function supplierPaymentGate(supplier: Supplier): RuleResult<SupplierGate
     return deny("name_check_unconfirmed", `The account name is a close match for ${supplier.nameEn}; an approver must confirm it`);
   }
   return allow();
+}
+
+/** The last approved IBAN change if it was approved within `days` of now (approvers see "IBAN changed recently"). */
+export function recentBankChange(supplier: Supplier, now: Date, days = 30): BankChangeRequest | undefined {
+  const last = lastApprovedBankChange(supplier);
+  if (!last?.decidedAt) return undefined;
+  const age = now.getTime() - Date.parse(last.decidedAt);
+  return age >= 0 && age <= days * 86_400_000 ? last : undefined;
 }
 
 /** The most recent approved IBAN change, by decision time. */
@@ -246,10 +257,18 @@ export function canConfirmCloseMatch(user: User | undefined, supplier: Supplier,
  */
 export function canCancel(bill: Bill, payment?: Payment): PermissionResult {
   if (bill.status === "cancelled") return deny("already_cancelled", "This bill is already cancelled");
+  if (bill.status === "discarded") return deny("already_discarded", "This bill was discarded as a duplicate");
   if (bill.status === "paid") return deny("already_paid", "This bill is already paid");
   if (payment && (payment.status === "sent" || payment.status === "settled")) {
     return deny("payment_sent", "The payment has already been sent and can no longer be cancelled");
   }
+  return allow();
+}
+
+/** BP-04: "Discard this copy" — only a draft that is flagged as a duplicate can be discarded. */
+export function canDiscardDuplicate(bill: Bill): PermissionResult {
+  if (!bill.duplicateOf) return deny("not_duplicate", "Only a bill flagged as a duplicate can be discarded");
+  if (bill.status !== "draft") return deny("not_draft", "Only a draft can be discarded");
   return allow();
 }
 

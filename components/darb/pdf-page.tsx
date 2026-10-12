@@ -122,7 +122,8 @@ function PageCanvas({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- callbacks are notifications only
   }, [doc, page, width]);
-  return <canvas ref={canvasRef} className="block bg-white" />;
+  // dir="ltr": a canvas inherits CSS direction, and pdf.js text drawn under rtl comes out garbled.
+  return <canvas ref={canvasRef} dir="ltr" className="block bg-white" />;
 }
 
 /** File tile + "Open file" link, shown when the PDF can't be drawn. */

@@ -19,6 +19,8 @@ export const enPayments = {
     sarie_weekend: "Weekend — next banking day",
   } as Record<string, string>,
   arrives: "arrives {date}",
+  bankChanged: "Bank details changed on {date} · requested by {requester}, approved by {approver}",
+  firstPayment: "First payment to this supplier — added by {name}",
   arrivesToday: "arrives today",
   runStatus: {
     draft: "Draft",
@@ -90,6 +92,22 @@ export const enPayments = {
     name_check_unconfirmed: "Close name match for {supplier}: an approver must confirm it first",
   } as Record<string, string>,
 
+  // ---------- Confirm and release (approve a run or a bill) ----------
+  confirm: {
+    title: "Confirm and release",
+    description: "Approving releases these payments on their pay dates.",
+    total: "Total",
+    payments: "Payments",
+    earliestArrival: "Earliest arrival",
+    paymentsCount: {
+      one: "{count} payment",
+      other: "{count} payments",
+    } as PluralForms,
+    verification: "In Darb this step uses your usual approval verification (mock).",
+    cancel: "Cancel",
+    confirm: "Confirm and release",
+  },
+
   // ---------- Desktop: runs list ----------
   runs: {
     title: "Payment runs",
@@ -127,6 +145,15 @@ export const enPayments = {
     billsDescription: "Draft bills that are ready: supplier saved, fields checked, not a duplicate.",
     selected: "{count} of {total} selected",
     selectAll: "Select all bills",
+    selectAllAction: "Select all",
+    selectDueBefore: "Select due before pay date",
+    clearSelection: "Clear",
+    payingEarly: {
+      one: "Paying {count} day early (due {date})",
+      other: "Paying {count} days early (due {date})",
+    } as PluralForms,
+    payOnDueDate: "Pay on due date",
+    paysOn: "Pays {date}",
     selectBill: "Select {invoice}",
     columns: {
       supplier: "Supplier",
@@ -233,6 +260,9 @@ export const enPayments = {
     english: "English",
     arabic: "Arabic",
     noBankDetails: "No bank details are included",
+    noticeSummary: "{channel} to {to} · {time} · English + Arabic",
+    payableSummary: "Payable synced · {amount} · {status}",
+    paymentSummary: "Payment synced · {ref}",
     notifyWhenLeaves: "The supplier is notified when the payment leaves (expected {sendAt}).",
     notifyAfterSend: "The supplier is notified once the payment is sent.",
     noContact: "No notice email or mobile is saved for this supplier.",

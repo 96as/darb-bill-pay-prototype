@@ -2,9 +2,9 @@ import { canApproveRun } from "@/lib/domain/permissions";
 import type { Bill, DisplayStatus, Halalas, ISODate, StoreData } from "@/lib/domain/types";
 import { riyadhDate } from "@/lib/ui/format";
 import { isDisplayStatus, displayStatus as toDisplayStatus } from "@/lib/ui/status";
-import { actingUser, billApprovalGate, supplierHasPaid, toGate, type Gate } from "@/lib/ui/store-helpers";
+import { actingUser, billApprovalGate, supplierHasPaid, toGate, userName, type Gate } from "@/lib/ui/store-helpers";
 import { makeCtx } from "@/lib/server/context";
-import { billsSummary } from "@/lib/server/services";
+import { billsSummary, listBills } from "@/lib/server/services";
 import { readStore } from "../store";
 
 // ---------- View model for /bills (serialisable: passed to client components) ----------
@@ -61,6 +61,10 @@ export interface ApprovalItem {
   submittedBy?: { name: string; nameAr: string };
   /** Whether the acting user may approve (lib/domain/permissions); the API re-checks. */
   gate: Gate;
+  /** Arrival if approved now (service quote via lib/domain/rails), for "Confirm and release". */
+  arrivalDate?: ISODate;
+  /** The supplier's IBAN changed recently (approved): shown as a warning before release. */
+  bankChange?: { changedAt: string; requester?: { name: string; nameAr: string }; approver?: { name: string; nameAr: string } };
 }
 
 export interface BillsView {
@@ -98,14 +102,16 @@ export function parseBillsFilters(params: Record<string, string | string[] | und
 
 // ---------- Loader (the page's only data access) ----------
 
-const isOpen = (status: DisplayStatus) => status !== "paid" && status !== "cancelled";
+const isOpen = (status: DisplayStatus) => status !== "paid" && status !== "cancelled" && status !== "discarded";
 
 export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsView> {
   const store: StoreData = await readStore();
   const today = riyadhDate(store.clock.now);
 
   // BP-18 balances come from the service layer (same numbers as GET /api/summary).
-  const summary = billsSummary(makeCtx(store));
+  const ctx = makeCtx(store);
+  const summary = billsSummary(ctx);
+  const serviceRows = new Map(listBills(ctx, { status: undefined }).map((r) => [r.bill.id, r]));
   const mainAccount = summary.accounts.find((a) => a.kind === "main");
   const scheduledCount = store.payments.filter((p) => p.status === "scheduled" || p.status === "held").length;
 
@@ -119,14 +125,15 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
     source: bill.source,
     extraction: bill.extraction,
     needsReviewCount: bill.needsReview.length,
-    duplicate: Boolean(bill.duplicateOf) && bill.status !== "cancelled",
+    duplicate: Boolean(bill.duplicateOf) && bill.status !== "cancelled" && bill.status !== "discarded",
     dueDate: bill.dueDate,
     total: bill.total,
     displayStatus: toDisplayStatus(bill, today),
   }));
 
+  // Discarded duplicates are hidden unless asked for (?status=discarded), like GET /api/bills.
   const rows = allRows
-    .filter((row) => !filters.status || row.displayStatus === filters.status)
+    .filter((row) => (filters.status ? row.displayStatus === filters.status : row.displayStatus !== "discarded"))
     .filter((row) => !filters.dueBefore || (row.dueDate !== undefined && row.dueDate < filters.dueBefore))
     .sort(compareRows);
 
@@ -176,6 +183,13 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
       total: bill.total,
       submittedBy: submitterOf(bill.submittedBy),
       gate: billApprovalGate(store, bill),
+      arrivalDate: serviceRows.get(bill.id)?.quote?.arrivalDate,
+      bankChange: (() => {
+        const change = serviceRows.get(bill.id)?.bankChange;
+        return change
+          ? { changedAt: change.changedAt, requester: userName(store, change.requestedBy), approver: userName(store, change.approvedBy) }
+          : undefined;
+      })(),
     }));
   const suppliersById = new Map(store.suppliers.map((s) => [s.id, s]));
   const paidSupplierIds = store.suppliers.filter((s) => supplierHasPaid(store, s)).map((s) => s.id);
@@ -217,7 +231,7 @@ export async function loadBillsView(filters: BillsFilters = {}): Promise<BillsVi
     },
     filters,
     rows,
-    totalCount: allRows.length,
+    totalCount: allRows.filter((r) => r.displayStatus !== "discarded").length,
     owed: {
       total: suppliers.reduce((sum, s) => sum + s.total, 0),
       billCount: suppliers.reduce((sum, s) => sum + s.billCount, 0),

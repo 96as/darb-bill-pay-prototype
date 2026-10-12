@@ -1,4 +1,5 @@
-import { Calculator, CircleCheck, Clock, Download, Mail, MessageSquare, Paperclip, ShieldCheck } from "lucide-react";
+import { Collapsible } from "@base-ui/react/collapsible";
+import { Calculator, ChevronDown, CircleCheck, Clock, Download, Mail, MessageSquare, Paperclip, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { formatAmount, formatSAR } from "@/lib/domain/money";
 import type { AccountingEntry, Bill, Halalas, Payment, Supplier, SupplierNotice } from "@/lib/domain/types";
@@ -71,7 +72,7 @@ export function PaymentSection({ bill, payment, notice, accountingEntries, suppl
       </div>
 
       <SupplierNoticeCard bill={bill} payment={payment} notice={notice} supplier={supplier} lang={lang} />
-      <AccountingCard entries={accountingEntries} lang={lang} />
+      <AccountingCard entries={accountingEntries} lang={lang} transferRef={payment.transferRef} />
     </div>
   );
 }
@@ -138,19 +139,27 @@ function SupplierNoticeCard({
   const to = notice?.to ?? supplier?.noticeEmail ?? supplier?.noticeMobile;
   const waiting = payment.status === "scheduled" || payment.status === "held";
 
+  const summary = notice
+    ? fmt(s.noticeSummary, {
+        channel: channel === "sms" ? s.channelSms : s.channelEmail,
+        to: notice.to,
+        time: formatInstant(notice.sentAt, lang),
+      })
+    : !to
+      ? s.noContact
+      : waiting
+        ? fmt(s.notifyWhenLeaves, { sendAt: formatInstant(payment.scheduledFor, lang) })
+        : `${payeeName(bill, lang, supplier)} · ${billReference(bill, t)}`;
+
   return (
     <section className="rounded-xl border bg-card" aria-label={s.noticeTitle}>
-      <CardHeader
+      <Disclosure
         icon={Icon}
         title={s.noticeTitle}
-        description={
-          notice
-            ? `${channel === "sms" ? s.channelSms : s.channelEmail} · ${fmt(s.sentAt, { time: formatInstant(notice.sentAt, lang) })}`
-            : `${payeeName(bill, lang, supplier)} · ${billReference(bill, t)}`
-        }
+        summary={summary}
         aside={<MockBadge label={channel === "sms" ? s.deliverySms : s.deliveryEmail} tooltip={s.mockTooltip} />}
-      />
-      <div className="space-y-4 border-t px-5 py-4">
+        panelClassName="space-y-4 border-t px-5 py-4"
+      >
         {notice ? (
           <>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -186,8 +195,55 @@ function SupplierNoticeCard({
           <ShieldCheck className="size-4 shrink-0" aria-hidden />
           {s.noBankDetails}
         </p>
-      </div>
+      </Disclosure>
     </section>
+  );
+}
+
+/**
+ * Expandable block, closed by default: a full-width button (aria-expanded, aria-controls via Base UI)
+ * with icon, title and a one-line summary; the vertical chevron reads the same in RTL.
+ * `aside` (e.g. a Mock badge) sits outside the button so it stays its own focus stop.
+ */
+function Disclosure({
+  icon: Icon,
+  title,
+  summary,
+  aside,
+  panelClassName,
+  children,
+  compact,
+}: {
+  icon?: typeof Mail;
+  title: React.ReactNode;
+  summary?: React.ReactNode;
+  aside?: React.ReactNode;
+  panelClassName?: string;
+  children: React.ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <Collapsible.Root>
+      <div className={cn("flex items-start gap-3 px-5", compact ? "py-3" : "py-4")}>
+        <Collapsible.Trigger className="group/disclosure flex min-w-0 flex-1 items-start gap-3 rounded-md text-start outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          {Icon ? (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-surface text-primary">
+              <Icon className="size-4" aria-hidden />
+            </span>
+          ) : null}
+          <span className="min-w-0 flex-1">
+            <span className={cn("block leading-snug font-medium", compact ? "text-sm" : "text-base")}>{title}</span>
+            {summary ? <span className="mt-0.5 block truncate text-sm text-muted-foreground">{summary}</span> : null}
+          </span>
+          <ChevronDown
+            className="mt-1.5 size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]/disclosure:rotate-180"
+            aria-hidden
+          />
+        </Collapsible.Trigger>
+        {aside ? <div className="shrink-0 pt-1">{aside}</div> : null}
+      </div>
+      <Collapsible.Panel className={panelClassName}>{children}</Collapsible.Panel>
+    </Collapsible.Root>
   );
 }
 
@@ -227,7 +283,7 @@ function NoticeBody({
 
 const ENTRY_ORDER: Record<AccountingEntry["kind"], number> = { payable: 0, payment: 1 };
 
-function AccountingCard({ entries, lang }: { entries: AccountingEntry[]; lang: Lang }) {
+function AccountingCard({ entries, lang, transferRef }: { entries: AccountingEntry[]; lang: Lang; transferRef?: string }) {
   const t = getDict(lang);
   const s = t.payments.section;
   const sorted = [...entries].sort(
@@ -244,13 +300,13 @@ function AccountingCard({ entries, lang }: { entries: AccountingEntry[]; lang: L
       {sorted.length === 0 ? (
         <p className="border-t px-5 py-4 text-sm text-muted-foreground">{s.noEntries}</p>
       ) : (
-        sorted.map((entry) => <AccountingEntryView key={entry.id} entry={entry} lang={lang} />)
+        sorted.map((entry) => <AccountingEntryView key={entry.id} entry={entry} lang={lang} transferRef={transferRef} />)
       )}
     </section>
   );
 }
 
-function AccountingEntryView({ entry, lang }: { entry: AccountingEntry; lang: Lang }) {
+function AccountingEntryView({ entry, lang, transferRef }: { entry: AccountingEntry; lang: Lang; transferRef?: string }) {
   const t = getDict(lang);
   const s = t.payments.section;
   const debit = entry.lines.reduce((sum, l) => sum + l.debit, 0);
@@ -259,26 +315,33 @@ function AccountingEntryView({ entry, lang }: { entry: AccountingEntry; lang: La
   const th = "h-9 px-3 text-xs font-medium text-muted-foreground first:ps-4 last:pe-4";
   const td = "px-3 py-2 first:ps-4 last:pe-4";
 
-  return (
-    <div className="space-y-4 border-t px-5 py-4" data-entry-kind={entry.kind}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium">
-          {s.entryKind[entry.kind]}
-          <span className="ms-2 font-normal text-muted-foreground">
-            <bdi>{entry.system}</bdi> · {formatInstant(entry.createdAt, lang)}
-          </span>
-        </p>
-        <span
-          className={cn(
-            "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium",
-            entry.status === "paid" ? "bg-success-surface text-success" : "bg-information text-information-foreground",
-          )}
-        >
-          <CircleCheck className="size-3.5" aria-hidden />
-          {s.accStatus[entry.status]}
-        </span>
-      </div>
+  const summary =
+    entry.kind === "payable"
+      ? fmt(s.payableSummary, { amount: formatSAR(entry.total, lang), status: s.accStatus[entry.status] })
+      : fmt(s.paymentSummary, { ref: transferRef ?? formatSAR(entry.total, lang) });
 
+  return (
+    <div className="border-t" data-entry-kind={entry.kind}>
+      <Disclosure
+        compact
+        title={s.entryKind[entry.kind]}
+        summary={<bdi>{summary}</bdi>}
+        aside={
+          <span
+            className={cn(
+              "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium",
+              entry.status === "paid" ? "bg-success-surface text-success" : "bg-information text-information-foreground",
+            )}
+          >
+            <CircleCheck className="size-3.5" aria-hidden />
+            {s.accStatus[entry.status]}
+          </span>
+        }
+        panelClassName="space-y-4 px-5 pb-4"
+      >
+      <p className="text-xs text-muted-foreground">
+        <bdi>{entry.system}</bdi> · {formatInstant(entry.createdAt, lang)}
+      </p>
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 xl:grid-cols-3">
         <Field label={s.fields.supplier}>
           <bdi>{entry.supplierName}</bdi>
@@ -332,6 +395,7 @@ function AccountingEntryView({ entry, lang }: { entry: AccountingEntry; lang: La
           </tfoot>
         </table>
       </div>
+      </Disclosure>
     </div>
   );
 }

@@ -27,6 +27,18 @@ describe("railAndArrival", () => {
     });
   });
 
+  it("the demo bill, SAR 46,000, at 16:10 or a few minutes later on Thu 15 Oct, arrives Sun 18 Oct", () => {
+    for (const time of ["16:10", "16:14", "16:30"]) {
+      expect(railAndArrival(sar("46,000.00"), at("2026-10-15", time))).toMatchObject({
+        rail: "sarie",
+        sendAt: "2026-10-18T06:00:00.000Z",
+        arrivalDate: "2026-10-18",
+        reason: "sarie_after_cutoff",
+      });
+    }
+    expect(railAndArrival(sar(46000), at("2026-10-15", "14:00")).arrivalDate).toBe("2026-10-15");
+  });
+
   it("SAR 45,000 on Thu 14:00 arrives Thu", () => {
     const sendAt = at("2026-10-15", "14:00");
     const q = railAndArrival(sar(45000), sendAt);

@@ -248,8 +248,8 @@ export function coolBreezeInvoiceHtml(t: CoolBreezeTotals, qr: string): string {
       </div>
       <div class="words">
         <div class="lbl">Amount in words / <span lang="ar" dir="rtl">المبلغ كتابةً</span></div>
-        <div class="en">Forty-five thousand Saudi riyals only</div>
-        <div class="ar" lang="ar" dir="rtl">فقط خمسة وأربعون ألف ريال سعودي لا غير</div>
+        <div class="en">${inv.totalInWordsEn}</div>
+        <div class="ar" lang="ar" dir="rtl">${inv.totalInWordsAr}</div>
       </div>
     </div>
     <div>
