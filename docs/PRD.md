@@ -10,6 +10,7 @@ Oct 12, 2026 · @Abdulrahman · Draft for review
 | :---- | :---- |
 | **Who is it for?** | Existing Darb clients who already pay suppliers by local transfer: the finance admin who prepares payments, the approvers who release them, and the accountant who closes the books |
 | **Why does Darb win?** | Clients pay suppliers from bank portals that don't read the invoice, show it to the approver or sync it to the books. Darb does all three where clients already hold spend money and approval rules; the cost is topping up Darb first |
+| **What does Darb get?** | More client money held and moved through Darb. Supplier payments are 76% of the value businesses pay (SAMA, 2021), so Bill Pay grows balances, payment volume and retention, with no new price |
 
 **The MVP in three parts**
 
@@ -169,7 +170,9 @@ O1 make Darb the place clients pay supplier invoices ·
 
 O2 move suppliers' money safely · 
 
-O3 remove retyping. Targets are proposals for the first two quarters, calibrated with Darb's data.
+O3 remove retyping · 
+
+O4 grow Darb's balances and payment volume; Bill Pay stays free within current plans. Targets are proposals for the first two quarters, calibrated with Darb's data.
 
 | Metric | Type | Layer | Target (proposed) | Events | Owner |
 | :---- | :---- | :---- | :---- | :---- | :---- |
@@ -179,6 +182,9 @@ O3 remove retyping. Targets are proposals for the first two quarters, calibrated
 | New suppliers whose name check returns a result | O2 | Platform | 95% | payee_name_checked | Risk |
 | Payments that succeed on the first attempt | O2 | Platform | 99.5% | payment_sent, payment_failed, payment_settled | Payments engineering |
 | Bills submitted without editing an extracted field | O3 | Platform | 80% | bill_extracted, bill_field_edited, bill_submitted | Payments engineering |
+| Average Darb balance held by Bill Pay clients, against similar clients without it | O4 | Business | Baseline in the pilot; target set with Darb's data | balance_snapshot (daily) | Finance |
+| Supplier payment value through Darb (SAR a month) | O4 | Business | Baseline in the pilot; target set with Darb's data | payment_settled | Finance |
+| 6-month retention of Bill Pay clients, against similar clients without it | O4 | Business | Higher than the comparison group | client_active_month | Growth |
 | Duplicate payments sent | Guardrail | Platform | 0 | bill_duplicate_flagged, bill_duplicate_dismissed, payment_sent | Risk |
 | Payments to a wrong account | Guardrail | Platform | 0 | payment_returned, wrong_account_reported | Risk |
 | Payments that bypassed a control (name check, IBAN-change approval, required approval) | Guardrail | Platform | 0 | payment_sent, payee_bank_change_approved | Risk |
@@ -199,9 +205,18 @@ O3 remove retyping. Targets are proposals for the first two quarters, calibrated
 
 ## **7. Rollout & roadmap**
 
-**Bill Pay pilots with invited existing clients, who need no new onboarding and already pay suppliers through Darb, then opens to all once the safety gate holds. The pilot also tests pre-funding: do clients top up Darb rather than pay from their bank portal?> *Diagram: rollout.* Pilot (P0 only, invite-only clients who already pay suppliers by local transfer; every failed or flagged payment reviewed weekly), built in order: M1 Bills and capture (BP-01, 03, 04, 11) → M2 Supplier safety (BP-05, 06, 07) → M3 Approve and pay (BP-08, 09, 14, 18). Gate: all zero-tolerance guardrails at 0; 99.5% first-attempt success over the agreed pilot sample. Launch (P0 + P1, all clients, from the existing Bill Pay menu): adds email inbox, payment runs, SADAD in the same list, supplier notice, prepare-only role, bill sync (first system), supplier onboarding link (BP-02, 10, 12, 13, 15, 16, 17). Gate: companies paying 5+ supplier bills a month on track to the O1 target. Next: recurring payments; bill sync to other accounting systems, then two-way. Later: auto-pay rules, supplier portal, Darb-to-Darb payments; overseas suppliers once international transfers launch.**
+**Bill Pay pilots with invited existing clients, who need no new onboarding and already pay suppliers through Darb, then opens to all once the safety gate holds. The pilot also tests pre-funding: do clients top up Darb rather than pay from their bank portal?**
 
-Gates are proposals; a safety incident pauses the flow. Team size and timing per milestone will come from the engineering delivery estimate.
+Gates are proposals; a safety incident pauses the flow. **Delivery plan, with no hires:** Bill Pay is the team's first priority (about 2.3 engineers of time), built on Darb's existing transfers and approval engine and reusing the prototype's code. The pilot is about 30 engineer-weeks (20 to 45), so invited clients start in Q3 2027. To fit, OCR, app approval, accounting sync, subwallet choice and the automatic name check move to launch, and Darb's operations team checks new supplier accounts by hand during the pilot. Names, ranges and the arithmetic are in the Delivery estimate & team tab.
+
+| When | Work | Exit check |
+| :---- | :---- | :---- |
+| Q4 2026 | Prepare: rail and name-check access requests, confirm Bill Pay can reuse Darb's transfers and approval engine, designs, pilot clients; start building in December | Reuse confirmed; designs signed off |
+| Q1 2027 | M1 Bills and capture, M2 Supplier safety | Drafts from real invoices; IBAN-change lock works end to end |
+| Q2 2027 | M3 Approve and pay (until early June), then security review, compliance sign-off and Darb paying its own suppliers | Ready for invited clients |
+| Q3 2027 | Pilot with invited clients from July; launch work built alongside | Pilot gate |
+| Q4 2027 | Launch work: OCR, app approval, accounting sync, automatic name check, payment runs and the other P1s | P1s complete |
+| Q1 2028 | Open to all clients | Launch about March 2028, after Eid al-Fitr |
 
 ## **8. Prototype**
 
