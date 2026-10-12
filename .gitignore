@@ -53,3 +53,4 @@ next-env.d.ts
 /demo-recording/.frames/
 /demo-recording/.dry-run/
 /demo-recording/.downloads/
+/demo-recording/edit/.work/
